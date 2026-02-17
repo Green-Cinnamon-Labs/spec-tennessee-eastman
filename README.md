@@ -28,9 +28,18 @@ capable of long-horizon simulation and future supervisory control integration.
 
 ## Related Repositories
 
-- `te-engine` — Core simulation engine (Rust implementation).
-- `te-supervisor` — Kubernetes-based supervisory control layer.
-- `te-experiments` — Numerical and control experiments (future).
+- [`fork-tennesseeEastman`](https://github.com/Green-Cinnamon-Labs/fork-tennesseeEastman)  
+  Core simulation engine (Rust implementation) of the Tennessee Eastman Digital Twin.  
+  Contains plant dynamics, numerical integration framework, and deterministic execution engine.
+
+- [`lab-k8s-supervisor`](https://github.com/Green-Cinnamon-Labs/lab-k8s-supervisor)  
+  Experimental supervisory control layer integrating Kubernetes control concepts with the digital twin.
+
+- [`cluster-api-provider-plc`](https://github.com/Green-Cinnamon-Labs/cluster-api-provider-plc)  
+  Custom Kubernetes controller (kubebuilder-based) implementing a reconciliation loop  
+  to declaratively manage plant control state through CRDs.
+
+
 
 ---
 
