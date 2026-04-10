@@ -1,7 +1,6 @@
 # Tarefas — TEP Digital Twin Lab
 
-Pendências abertas com vínculo às issues dos repositórios.
-Tarefas sem issue associada ainda não foram formalizadas.
+Pendências abertas com vínculo às issues de [spec-tennessee-eastman](https://github.com/Green-Cinnamon-Labs/spec-tennessee-eastman).
 
 ---
 
@@ -14,40 +13,41 @@ Aguardando confirmação nos logs que o PLCMachine sai de `Pending` → `Monitor
 
 ---
 
-## Pendente — cluster-api-provider-plc
+## Issues abertas — foco atual (42–45)
 
-| # | Descrição | Issue |
+| Issue | Título | Status |
 |---|---|---|
-| — | Reconciler com gRPC client | [#38](https://github.com/Green-Cinnamon-Labs/cluster-api-provider-plc/issues/38) |
-| — | Setup Kind cluster | [#39](https://github.com/Green-Cinnamon-Labs/cluster-api-provider-plc/issues/39) |
-| — | Deploy planta + operator | [#40](https://github.com/Green-Cinnamon-Labs/cluster-api-provider-plc/issues/40) |
-| — | Teste E2E: CR → distúrbio → reconciliação | [#41](https://github.com/Green-Cinnamon-Labs/cluster-api-provider-plc/issues/41) |
+| [#42](https://github.com/Green-Cinnamon-Labs/spec-tennessee-eastman/issues/42) | Dashboard de observabilidade (planta + operator) | Em andamento — IHM ok, painel K8s placeholder |
+| [#43](https://github.com/Green-Cinnamon-Labs/spec-tennessee-eastman/issues/43) | Baseline da planta (documentar estado estável, faixas normais) | Pendente — precisa do Exp 2 |
+| [#44](https://github.com/Green-Cinnamon-Labs/spec-tennessee-eastman/issues/44) | Lógica supervisória do operator (avaliação e resposta a distúrbios) | Pendente — operator conectando |
+| [#45](https://github.com/Green-Cinnamon-Labs/spec-tennessee-eastman/issues/45) | Ciclos de distúrbio (cenários iterativos, testar respostas) | Pendente — após #43 e #44 |
 
 ---
 
-## Pendente — tep-ihm
+## Issues abertas — backlog técnico
 
-| # | Descrição | Issue |
-|---|---|---|
-| — | Painel OPERATOR K8S: exibir fase e última ação do PLCMachine | [#44](https://github.com/Green-Cinnamon-Labs/tep-ihm/issues/44) |
+| Issue | Título |
+|---|---|
+| [#27](https://github.com/Green-Cinnamon-Labs/spec-tennessee-eastman/issues/27) | Clarify Control Inputs vs Disturbances in TEP Model Interface |
+| [#19](https://github.com/Green-Cinnamon-Labs/spec-tennessee-eastman/issues/19) | Validate Model Against Reference Dataset `(data/d00.dat)` |
+| [#1](https://github.com/Green-Cinnamon-Labs/spec-tennessee-eastman/issues/1) | Runtime-Switchable DynamicModel |
+| [#2](https://github.com/Green-Cinnamon-Labs/spec-tennessee-eastman/issues/2) | Steady-State Solver (Equilibrium Computation) |
+| [#3](https://github.com/Green-Cinnamon-Labs/spec-tennessee-eastman/issues/3) | Jacobian Evaluation Engine |
+| [#4](https://github.com/Green-Cinnamon-Labs/spec-tennessee-eastman/issues/4) | Local Stability Analyzer |
+| [#5](https://github.com/Green-Cinnamon-Labs/spec-tennessee-eastman/issues/5) | Parameter Sweep & Bifurcation Detection |
+| [#10](https://github.com/Green-Cinnamon-Labs/spec-tennessee-eastman/issues/10) | Introduce Base `AccumulationUnit` Abstraction |
+| [#13](https://github.com/Green-Cinnamon-Labs/spec-tennessee-eastman/issues/13) | Introduce Base `Actuator` Abstraction |
+| [#14](https://github.com/Green-Cinnamon-Labs/spec-tennessee-eastman/issues/14) | Introduce Base `Sensor` Abstraction |
 
 ---
 
-## Pendente — experimentos
+## Sequência de experimentos pendentes
 
 | Exp | Descrição | Depende de |
 |---|---|---|
 | Exp 1 | Fechar resultado/conclusão após confirmar conexão do operator | Conectividade acima |
-| Exp 2 | Baseline limpo: t=20→40h sem IDV, capturar std(XMEAS[6,11,14]) | Exp 1 concluído |
-| Exp 3 | IDV(4) sozinho em t=25h — medir pico de pressão e tempo de recovery | Exp 2 concluído |
-| Exp 4 | IDV(1) sozinho em t=25h | Exp 2 concluído |
-| Exp 5 | IDV(1)+IDV(4) simultâneos — "pior caso" dos P-controllers | Exp 3 e 4 concluídos |
-| Exp 6 | IDV(1)+IDV(4) com supervisor ativo — testar H1 | Exp 5 + operator conectado |
-
----
-
-## Decisões abertas
-
-- O `plcmachine-sample.yaml` em `lab-k8s-supervisor/local/k8s/` deve ser mantido
-  sincronizado com o sample de `cluster-api-provider-plc/config/samples/`.
-  Hoje estão divergentes — o do lab ainda usa o endereço antigo?
+| Exp 2 | Baseline limpo: t=20→40h sem IDV — std(XMEAS[6,11,14]) | Exp 1 concluído → fecha [#43](https://github.com/Green-Cinnamon-Labs/spec-tennessee-eastman/issues/43) |
+| Exp 3 | IDV(4) sozinho em t=25h — pico de pressão, tempo de recovery | Exp 2 |
+| Exp 4 | IDV(1) sozinho em t=25h | Exp 2 |
+| Exp 5 | IDV(1)+IDV(4) simultâneos — pior caso dos P-controllers | Exp 3 e 4 → inicia [#45](https://github.com/Green-Cinnamon-Labs/spec-tennessee-eastman/issues/45) |
+| Exp 6 | IDV(1)+IDV(4) com supervisor ativo — testar H1 | Exp 5 + operator conectado → fecha [#44](https://github.com/Green-Cinnamon-Labs/spec-tennessee-eastman/issues/44) |
