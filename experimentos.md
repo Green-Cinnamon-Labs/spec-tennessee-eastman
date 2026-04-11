@@ -43,7 +43,7 @@ não são endereçáveis via `<nome>.default.svc`. Para alcançar a planta
 
 ### Intervenção
 
-Arquivo modificado: `cluster-api-provider-plc/config/samples/infrastructure_v1alpha1_plcmachine.yaml`
+Arquivo modificado: `tep-operator/config/samples/infrastructure_v1alpha1_plcmachine.yaml`
 
 ```yaml
 # antes
