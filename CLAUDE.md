@@ -12,8 +12,7 @@ Read these before opening any other file:
 
 | File                          | When to use                                                      |
 | ----------------------------- | ---------------------------------------------------------------- |
-| `tasks.md`                    | Current operational status — open issues and experiment sequence |
-| `experiments.md`              | Scientific history — observations, hypotheses, results           |
+| `experiments.md`              | **Master file:** operational status (open issues, in-progress experiments), scientific history (observations, hypotheses, results), and experiment sequence |
 | `docs/ai/REPO_MAP.md`         | Routing by task type — which technical repo to touch             |
 | `docs/ai/ARCHITECTURE.md`     | Lab architecture and structural rules                            |
 | `docs/ai/COMMANDS.md`         | Commands per repo (build, run, test, diagnostic)                 |

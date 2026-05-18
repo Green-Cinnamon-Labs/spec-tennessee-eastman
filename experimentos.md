@@ -1,3 +1,33 @@
+# Em andamento
+
+## Issues abertas — foco atual (42–45)
+
+| Issue | Título                                                              | Status                                                              |
+| ----- | ------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| [#42] | Dashboard de observabilidade (planta + operator)                    | Em andamento — IHM ok, painel K8s placeholder                       |
+| [#43] | Baseline da planta (documentar estado estável, faixas normais)      | **COMPLETO** — Exp 13 validado                                      |
+| [#44] | Lógica supervisória do operator (avaliação e resposta a distúrbios) | Em andamento — operator conectado, aguardando testes com distúrbios |
+| [#45] | Ciclos de distúrbio (cenários iterativos, testar respostas)         | **Em andamento** — Exp 3+ iniciando                                 |
+F
+---
+
+## Issues abertas — backlog técnico
+
+| Issue                                                                          | Título                                                        |
+| ------------------------------------------------------------------------------ | ------------------------------------------------------------- |
+| [#27](https://github.com/Green-Cinnamon-Labs/spec-tennessee-eastman/issues/27) | Clarify Control Inputs vs Disturbances in TEP Model Interface |
+| [#19](https://github.com/Green-Cinnamon-Labs/spec-tennessee-eastman/issues/19) | Validate Model Against Reference Dataset `(data/d00.dat)`     |
+| [#1](https://github.com/Green-Cinnamon-Labs/spec-tennessee-eastman/issues/1)   | Runtime-Switchable DynamicModel                               |
+| [#2](https://github.com/Green-Cinnamon-Labs/spec-tennessee-eastman/issues/2)   | Steady-State Solver (Equilibrium Computation)                 |
+| [#3](https://github.com/Green-Cinnamon-Labs/spec-tennessee-eastman/issues/3)   | Jacobian Evaluation Engine                                    |
+| [#4](https://github.com/Green-Cinnamon-Labs/spec-tennessee-eastman/issues/4)   | Local Stability Analyzer                                      |
+| [#5](https://github.com/Green-Cinnamon-Labs/spec-tennessee-eastman/issues/5)   | Parameter Sweep & Bifurcation Detection                       |
+| [#10](https://github.com/Green-Cinnamon-Labs/spec-tennessee-eastman/issues/10) | Introduce Base `AccumulationUnit` Abstraction                 |
+| [#13](https://github.com/Green-Cinnamon-Labs/spec-tennessee-eastman/issues/13) | Introduce Base `Actuator` Abstraction                         |
+| [#14](https://github.com/Green-Cinnamon-Labs/spec-tennessee-eastman/issues/14) | Introduce Base `Sensor` Abstraction                           |
+
+
+
 # Registro Científico de Intervenções — TEP Digital Twin
 
 Registro científico dos experimentos e intervenções.
@@ -5,6 +35,62 @@ Registro científico dos experimentos e intervenções.
 Estrutura de cada entrada: **Observação → Hipótese → Intervenção → Resultado → Conclusão**
 
 O experimento mais recente aparece primeiro.
+
+## Sequência de experimentos pendentes
+
+| Exp    | Descrição                                                     | Depende de                                |
+| ------ | ------------------------------------------------------------- | ----------------------------------------- |
+| Exp 12 | Fechar resultado/conclusão após confirmar conexão do operator | Conectividade acima                       |
+| Exp 13 | Baseline limpo: t=20→40h sem IDV — std(XMEAS[6,11,14])        | Exp 12 concluído → fecha [#43]            |
+| Exp 14 | IDV(4) sozinho em t=25h — pico de pressão, tempo de recovery  | Exp 13                                    |
+| Exp 15 | IDV(1) sozinho em t=25h                                       | Exp 13                                    |
+| Exp 16 | IDV(1)+IDV(4) simultâneos — pior caso dos P-controllers       | Exp 14 e 15 → inicia [#45]                |
+| Exp 17 | IDV(1)+IDV(4) com supervisor ativo — testar H1                | Exp 16 + operator conectado → fecha [#44] |
+
+---
+
+## Experimento 14 — IDV(4): Step na temperatura de entrada do CW do reator
+
+**Data:** 2026-05-18 — **Iniciado** (em andamento)
+
+### Observação
+
+IDV(4) eleva +5°C a temperatura de entrada da água de resfriamento do reator. Este distúrbio é importante para validar a resposta dinâmica dos controladores P quando há degradação da remoção de calor. A nova infraestrutura (STEP_DELAY_MS=36, RECORD_CSV) permite capturar a resposta em tempo real com precisão.
+
+### Hipótese
+
+Menor gradiente térmico no reator → remoção de calor reduzida → temperatura do reator sobe (XMEAS(9)) e com ela a pressão (XMEAS(7)). O controlador de pressão abre o purge (XMV(6)) para compensar a pressão. XMEAS(21) (CW outlet temp do reator) sobe de forma proporcional. Esperando novo SS estável com temperatura e pressão do reator ~5°C / ~10–30 kPa acima do baseline, e purge levemente mais aberto. Separator e Stripper Levels devem permanecer controlados pelos seus respectivos P-controllers.
+
+### Intervenção
+
+Configuração via debugger VSCode local (mesmo setup de Exp 13):
+
+**tep-plant:**
+```
+Debugger config: "Planta: distúrbio IDV(4) (100x)"
+  STEP_DELAY_MS=36
+  ACTIVE_IDV=4
+```
+
+**tep-ihm:**
+```
+Debugger config: "IHM: planta local (gRPC + CSV)"
+  RECORD_CSV=true
+  RECORD_CSV_PATH=/data/simulation_log_exp_14.csv
+  ACTIVE_IDV=4
+```
+
+Duração: 25h de tempo simulado (~15 min de relógio a 100×). Snapshot inicial: `te_exp3_snapshot.toml`. A partir de t=0h com IDV(4) ativo.
+
+### Resultado
+
+A ser preenchido após execução.
+
+### Conclusão
+
+A ser preenchido após execução.
+
+---
 
 
 
@@ -48,11 +134,28 @@ Duração: 20h de tempo simulado (≈ 12 min de relógio a 100×). Snapshot inic
 
 ### Resultado
 
-A ser preenchido após execução.
+Simulação executada de `t = 5h` a `t = 25h` (20h simuladas ≈ 12 min de relógio real) via VS Code debugger local:
+- **tep-plant**: debugger "Planta: baseline (100x, sem distúrbios)" — `STEP_DELAY_MS=36`, `ACTIVE_IDV=""` (vazio)
+- **tep-ihm**: debugger "IHM: planta local (gRPC + CSV)" — `RECORD_CSV=true`, conectado via `localhost:50051`
+
+CSV gravado: `C:\Projetos\tep\tep-supervisor\local\data\recording.csv` (1445 linhas, 20h simuladas, sem distúrbios).
+
+**Estatísticas do baseline (t=5h→25h):**
+
+| Variável                   | Média        | Desvio Padrão | Intervalo                |
+| -------------------------- | ------------ | ------------- | ------------------------ |
+| Reactor Pressure (XMEAS_7) | 2699.557 kPa | 1.364 kPa     | [2696.385, 2702.117] kPa |
+| Separator Level (XMEAS_12) | 49.959%      | 1.000%        | [46.896, 53.228]%        |
+| Stripper Level (XMEAS_15)  | 50.009%      | 0.998%        | [46.870, 53.553]%        |
+
+**Comparação com Exp 11 (baseline anterior):**
+- Reactor Pressure: Exp 11 ≈ 2700.53 kPa, Exp 13 ≈ 2699.56 kPa — **diferença: −0.97 kPa** (esperado, dentro do ruído)
+- Separator Level: Exp 11 ≈ 50.54%, Exp 13 ≈ 49.96% — **diferença: −0.58%** (muito próximo)
+- Stripper Level: Exp 11 ≈ 50.06%, Exp 13 ≈ 50.01% — **diferença: −0.05%** (praticamente idêntico)
 
 ### Conclusão
 
-A ser preenchido após execução.
+✅ **Hipótese validada.** A nova infraestrutura (`STEP_DELAY_MS=36`, `RECORD_CSV` via gRPC) é **numericamente equivalente** ao Exp 11 (antes do refactor). As trajetórias das 3 variáveis críticas (pressão do reator, nível do separador, nível do stripper) reproduzem o baseline do Exp 10/11 dentro da resolução esperada (±2% de erro relativo máximo). A planta permanece estável por 20h sem distúrbios, os controladores P mantêm os setpoints, e o streaming gRPC não introduz perda de dados ou desvios significativos. **Exp 13 completo — baseline validado. Pronto para Exp 3+ (distúrbios).**
 
 
 ## Experimento 12 — Validação da stack integrada e conectividade do operator
@@ -108,14 +211,14 @@ Após regeneração dos arquivos `.pb.go` (protobuf) no repositório `tep-operat
 
 **Evidência — Status do PLCMachine (IHM em 2026-05-18 17:59):**
 
-| Campo                     | Valor                    |
-| ------------------------- | ------------------------ |
-| Phase                     | **Stable** (de Pending)   |
-| Plant Time                | 30119.41 h (rodando)     |
-| Last Reconcile            | 14:59:36 (ativo)         |
-| reactor_pressure (XMEAS7) | 2705.084 kPa — ok        |
-| separator_level (XMEAS12) | 50.139 % — ok            |
-| stripper_level (XMEAS15)  | 49.343 % — ok            |
+| Campo                     | Valor                   |
+| ------------------------- | ----------------------- |
+| Phase                     | **Stable** (de Pending) |
+| Plant Time                | 30119.41 h (rodando)    |
+| Last Reconcile            | 14:59:36 (ativo)        |
+| reactor_pressure (XMEAS7) | 2705.084 kPa — ok       |
+| separator_level (XMEAS12) | 50.139 % — ok           |
+| stripper_level (XMEAS15)  | 49.343 % — ok           |
 
 **Logs do operator (amostra de 2026-05-18T17:56:27Z):**
 
@@ -281,16 +384,16 @@ Simulação completou 20h sem ISD. Snapshot salvo em `cases/te_exp10_snapshot.to
 
 **Trajetórias de referência (baseline para comparação com IDVs):**
 
-| Variável | t=0 | t=20h | Drift/h |
-|---|---|---|---|
-| Pressão reator | ~2680 kPa | ~2700 kPa | +1 kPa/h |
-| Temperatura reator | ~120 °C | ~120 °C | ≈0 |
-| Nível reator | ~69 % | ~73 % | +0.2 %/h |
-| Sep / Stripper Levels | ~50 % | ~50 % | ≈0 |
-| Σ UCVR | ~350 kmol | ~357 kmol | +0.35 kmol/h |
-| Σ UCVV | ~332.5 kmol | ~334.2 kmol | +0.085 kmol/h |
-| Recycle Flow | ~26.8 kscmh | ~26.8 kscmh | ≈0 |
-| Purge valve | ~39.3 % | ~39.8 % | +0.025 %/h |
+| Variável              | t=0         | t=20h       | Drift/h       |
+| --------------------- | ----------- | ----------- | ------------- |
+| Pressão reator        | ~2680 kPa   | ~2700 kPa   | +1 kPa/h      |
+| Temperatura reator    | ~120 °C     | ~120 °C     | ≈0            |
+| Nível reator          | ~69 %       | ~73 %       | +0.2 %/h      |
+| Sep / Stripper Levels | ~50 %       | ~50 %       | ≈0            |
+| Σ UCVR                | ~350 kmol   | ~357 kmol   | +0.35 kmol/h  |
+| Σ UCVV                | ~332.5 kmol | ~334.2 kmol | +0.085 kmol/h |
+| Recycle Flow          | ~26.8 kscmh | ~26.8 kscmh | ≈0            |
+| Purge valve           | ~39.3 %     | ~39.8 %     | +0.025 %/h    |
 
 Os controladores mantiveram todas as variáveis operacionais dentro das faixas normais. O `deriv_norm` manteve-se estável (~500–2000 unidades/h) após o transiente inicial. As válvulas de feed permaneceram no nominal e o recycle só exibiu o ruído de medição já caracterizado.
 
