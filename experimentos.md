@@ -63,13 +63,13 @@ Menor gradiente térmico no reator → remoção de calor reduzida → temperatu
 
 ### Intervenção
 
-Configuração via debugger VSCode local (mesmo setup de Exp 13):
+Configuração via debugger VSCode local com controle via painel IHM em tempo real:
 
 **tep-plant:**
 ```
-Debugger config: "Planta: distúrbio IDV(4) (100x)"
+Debugger config: "Planta: baseline (100x, sem distúrbios)"
   STEP_DELAY_MS=36
-  ACTIVE_IDV=4
+  ACTIVE_IDV=""  (vazio — distúrbios controlados via IHM)
 ```
 
 **tep-ihm:**
@@ -77,10 +77,19 @@ Debugger config: "Planta: distúrbio IDV(4) (100x)"
 Debugger config: "IHM: planta local (gRPC + CSV)"
   RECORD_CSV=true
   RECORD_CSV_PATH=/data/simulation_log_exp_14.csv
-  ACTIVE_IDV=4
+  ACTIVE_IDV=""  (vazio)
 ```
 
-Duração: 25h de tempo simulado (~15 min de relógio a 100×). Snapshot inicial: `te_exp3_snapshot.toml`. A partir de t=0h com IDV(4) ativo.
+**Procedimento:**
+
+1. Iniciar planta com `ACTIVE_IDV=""` (sem distúrbios)
+2. Iniciar IHM e conectar via WebSocket
+3. Aguardar atingir steady-state (~5min a 100×)
+4. Clicar em botão **IDV(4)** no painel "Disturbances" para ativar
+5. Observar resposta dinâmica dos controladores em tempo real nos charts
+6. Deixar rodar até novo steady-state (~20h simuladas, ~12 min de relógio)
+
+Duração total: ~25h de tempo simulado (~15 min de relógio a 100×). Snapshot inicial: `te_exp3_snapshot.toml`. IDV(4) ativado via painel IHM em t≈5h.
 
 ### Resultado
 

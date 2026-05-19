@@ -11,9 +11,8 @@ cargo run -p service -- --headless  # sem CSV logger nem dashboard terminal
 cargo test                   # todos os testes
 cargo test -p te-core        # testes só do core
 
-# Variáveis de ambiente da planta:
+# Variáveis de ambiente:
 # STEP_DELAY_MS=36   → 100× tempo real  (0 = máximo da CPU, padrão)
-# ACTIVE_IDV=4       → ativar distúrbio IDV 4 (pode ser lista: "1,4")
 ```
 
 ### tep-ihm (Python / FastAPI)
@@ -32,10 +31,11 @@ poetry run python -m grpc_tools.protoc \
 # Rodar o backend (planta precisa estar acessível em :50051):
 poetry run python src/server.py
 
-# Variáveis de ambiente:
-# PLANT_ADDRESS=localhost:50051
-# STREAM_INTERVAL_MS=500
-# PORT=8080
+# Variáveis de ambiente (opcional):
+# PLANT_ADDRESS=localhost:50051    # endereço da planta
+# STREAM_INTERVAL_MS=500            # intervalo de broadcast (ms)
+# PORT=8080                         # porta do servidor
+# RECORD_CSV_PATH=/data/recording.csv  # caminho para salvar CSV (padrão)
 ```
 
 ### tep-operator (Go / Kubebuilder)
