@@ -46,6 +46,36 @@ Comparando com o Spring:
 O Uvicorn é o servidor HTTP que roda embaixo do FastAPI.
 No mundo Spring o equivalente seria o Tomcat ou o Jetty.
 
+```mermaid
+flowchart TD
+    SO["Sistema Operacional<br/>processos, threads, sockets, arquivos"]
+
+    PROC["Processo Python<br/>criado ao rodar: uvicorn app:app"]
+
+    VM["Python Interpreter / VM<br/>executa bytecode Python"]
+
+    UVI["Uvicorn<br/>servidor ASGI escrito em Python"]
+
+    LOOP["Event loop asyncio<br/>agenda coroutines e I/O assíncrono"]
+
+    APP["Aplicação FastAPI<br/>rotas, websockets, handlers"]
+
+    REQ["Requisições HTTP/WebSocket"]
+
+    WORKER["AnyIO worker threads<br/>executam código bloqueante quando necessário"]
+
+    SO --> PROC
+    PROC --> VM
+    VM --> UVI
+    UVI --> LOOP
+    LOOP --> APP
+    REQ --> UVI
+
+    LOOP -. delega quando precisa .-> WORKER
+    WORKER -. retorna resultado .-> LOOP
+```
+
+
 O Uvicorn inicia o event loop do `asyncio` e fica nele para sempre.
 Quando chega uma requisição HTTP, o Uvicorn a transforma num evento e entrega para o FastAPI processar como uma coroutine.
 
