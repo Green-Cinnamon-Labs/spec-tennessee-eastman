@@ -1,0 +1,214 @@
+<svg id="plant-diagram" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800">
+  
+  <!-- Definições: cores, gradientes, marcadores -->
+  <defs>
+    <style>
+      .vessel { stroke: #333; stroke-width: 2; }
+      .vessel-R { fill: url(#grad-R); }
+      .vessel-S { fill: url(#grad-S); }
+      .vessel-C { fill: url(#grad-C); }
+      .vessel-V { fill: url(#grad-V); }
+      
+      .stream { fill: none; stroke: #666; stroke-width: 2; }
+      .stream-gaseous { stroke-dasharray: 5,5; }
+      
+      .valve { fill: #ccc; stroke: #333; stroke-width: 1; }
+      .valve-open { fill: #90EE90; }
+      .valve-stuck { fill: #FF6B6B; }
+      
+      .sensor { fill: #666; stroke: #333; stroke-width: 1; }
+      .analyzer { fill: #FFD700; stroke: #333; stroke-width: 1; }
+      
+      .label { font-family: Consolas, monospace; font-size: 10px; }
+      .xmeas-label { fill: #000; }
+      .xmv-label { fill: #fff; font-weight: bold; }
+      
+      .alarm-ok { filter: drop-shadow(0 0 3px #4fc3f7); }
+      .alarm-warning { filter: drop-shadow(0 0 5px #ffa726); }
+      .alarm-active { filter: drop-shadow(0 0 8px #ef5350); }
+    </style>
+    
+    <!-- Gradientes de cores para vasos (T simulado) -->
+    <linearGradient id="grad-R" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#3498db;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#e74c3c;stop-opacity:0.3" />
+    </linearGradient>
+    <!-- idem para S, C, V -->
+  </defs>
+  
+  <!-- ─────────────────────────────────────────────────────────────── -->
+  <!-- VASOS (Vessels) — núcleos de operação -->
+  <!-- ─────────────────────────────────────────────────────────────── -->
+  <g id="vessels">
+    
+    <!-- Reactor (R) -->
+    <g id="vessel-R" data-unit="R" data-xmeas-base="7,8,9,23-28">
+      <rect class="vessel vessel-R" x="300" y="200" width="150" height="120" rx="5" 
+            data-pt="7" data-vl="8" data-tc="9" />
+      <text class="label xmeas-label" x="310" y="215">REACTOR (R)</text>
+      <text class="label xmeas-label" x="310" y="230" data-bind="xmeas-7">PT: --</text>
+      <text class="label xmeas-label" x="310" y="245" data-bind="xmeas-9">TC: --</text>
+      <text class="label xmeas-label" x="310" y="260" data-bind="xmeas-8">VL: --</text>
+    </g>
+    
+    <!-- Separator (S) -->
+    <g id="vessel-S" data-unit="S" data-xmeas-base="13,12,11,29-34">
+      <rect class="vessel vessel-S" x="600" y="200" width="150" height="120" rx="5"
+            data-pt="13" data-vl="12" data-tc="11" />
+      <text class="label xmeas-label" x="610" y="215">SEPARATOR (S)</text>
+      <text class="label xmeas-label" x="610" y="230" data-bind="xmeas-13">PT: --</text>
+      <text class="label xmeas-label" x="610" y="245" data-bind="xmeas-11">TC: --</text>
+      <text class="label xmeas-label" x="610" y="260" data-bind="xmeas-12">VL: --</text>
+    </g>
+    
+    <!-- Stripper (C) -->
+    <g id="vessel-C" data-unit="C" data-xmeas-base="16,15,18,35-41">
+      <rect class="vessel vessel-C" x="800" y="200" width="150" height="120" rx="5"
+            data-pt="16" data-vl="15" data-tc="18" />
+      <text class="label xmeas-label" x="810" y="215">STRIPPER (C)</text>
+      <text class="label xmeas-label" x="810" y="230" data-bind="xmeas-16">PT: --</text>
+      <text class="label xmeas-label" x="810" y="245" data-bind="xmeas-18">TC: --</text>
+      <text class="label xmeas-label" x="810" y="260" data-bind="xmeas-15">VL: --</text>
+    </g>
+    
+    <!-- Compressor (V) -->
+    <g id="vessel-V" data-unit="V" data-xmeas-base="5">
+      <circle class="vessel vessel-V" cx="450" cy="450" r="60"
+              data-flow="5" />
+      <text class="label xmeas-label" x="430" y="450">COMP (V)</text>
+      <text class="label xmeas-label" x="425" y="470" data-bind="xmeas-5">Recycle: --</text>
+    </g>
+  </g>
+  
+  <!-- ─────────────────────────────────────────────────────────────── -->
+  <!-- CORRENTES (Streams) — conexões de material -->
+  <!-- ─────────────────────────────────────────────────────────────── -->
+  <g id="streams">
+    <!-- Cada corrente é uma PATH com animação de largura/opacidade dinamica -->
+    
+    <!-- Feed Streams (entradas) -->
+    <path id="stream-feed-A" class="stream" 
+          d="M 100 220 Q 200 220 300 220" 
+          data-xmeas="1" data-type="gas" data-source="A" stroke-width="2" />
+    
+    <path id="stream-feed-D" class="stream" 
+          d="M 100 260 Q 200 240 300 260" 
+          data-xmeas="2" data-type="liquid" data-source="D" stroke-width="2" />
+    
+    <path id="stream-feed-E" class="stream" 
+          d="M 100 300 Q 200 260 300 300" 
+          data-xmeas="3" data-type="liquid" data-source="E" stroke-width="2" />
+    
+    <path id="stream-feed-AC" class="stream" 
+          d="M 100 340 Q 200 280 300 340" 
+          data-xmeas="4" data-type="gas" data-source="AC" stroke-width="2" />
+    
+    <!-- Recycle (Compressor → Reactor) -->
+    <path id="stream-recycle" class="stream stream-gaseous" 
+          d="M 450 520 Q 400 300 380 260" 
+          data-xmeas="5" data-type="gas" stroke-width="2" />
+    
+    <!-- Purge (Reactor → Vent) -->
+    <path id="stream-purge" class="stream stream-gaseous" 
+          d="M 380 200 L 350 100" 
+          data-xmeas="10" data-type="gas" stroke-width="2" />
+    
+    <!-- Reactor → Separator (vapor) -->
+    <path id="stream-vapor-R-to-S" class="stream stream-gaseous" 
+          d="M 450 260 Q 530 260 600 260" 
+          data-type="vapor" stroke-width="2" />
+    
+    <!-- Separator → Stripper (liquid) -->
+    <path id="stream-liquid-S-to-C" class="stream" 
+          d="M 750 300 Q 770 300 800 300" 
+          data-type="liquid" stroke-width="2" />
+    
+    <!-- Product Overhead (vapor out) -->
+    <path id="stream-product-overhead" class="stream stream-gaseous" 
+          d="M 675 200 L 700 100" 
+          data-type="gas" stroke-width="2" />
+    
+    <!-- Product Bottoms (liquid out) -->
+    <path id="stream-product-bottoms" class="stream" 
+          d="M 875 320 L 900 400" 
+          data-type="liquid" stroke-width="2" />
+  </g>
+  
+  <!-- ─────────────────────────────────────────────────────────────── -->
+  <!-- VÁLVULAS (Valves) — atuadores XMV -->
+  <!-- ─────────────────────────────────────────────────────────────── -->
+  <g id="valves">
+    <!-- Válvulas de feed (XMV 1-4) — retângulos pequenos, altura proporcional a VPOS -->
+    <rect id="valve-XMV1" class="valve" x="280" y="200" width="15" height="30"
+          data-xmv="1" data-stream="feed-D" />
+    <text class="label xmv-label" x="260" y="185">XMV(1)</text>
+    
+    <!-- ... idem XMV(2), XMV(3), XMV(4) ... -->
+    
+    <!-- Válvulas de controle (XMV 5-9) — maiores, posição no pipeline -->
+    <rect id="valve-XMV5" class="valve" x="420" y="500" width="30" height="30"
+          data-xmv="5" data-stream="recycle" title="Compressor Recycle" />
+    <text class="label xmv-label" x="400" y="545">XMV(5)</text>
+    
+    <!-- CW flows (XMV 10, 11) — círculos, fluxo em legenda -->
+    <circle id="valve-XMV10" class="valve" cx="280" cy="140" r="15"
+            data-xmv="10" data-stream="CW-reactor" title="Reactor CW Flow" />
+    <text class="label xmv-label" x="270" y="160">XMV(10)</text>
+    
+    <!-- Agitator (XMV 12) — disco giratório -->
+    <circle id="valve-XMV12" class="valve" cx="375" cy="270" r="12"
+            data-xmv="12" title="Agitator Speed %" />
+    <text class="label xmv-label" x="360" y="290">XMV(12)</text>
+  </g>
+  
+  <!-- ─────────────────────────────────────────────────────────────── -->
+  <!-- SENSORES INLINE (Sensors) — medições de fluxo/composição nas correntes -->
+  <!-- ─────────────────────────────────────────────────────────────── -->
+  <g id="sensors">
+    <!-- Sensores de fluxo (XMEAS 1-22) nas correntes -->
+    <circle class="sensor" cx="150" cy="220" r="6" data-xmeas="1" />
+    <text class="label" x="140" y="235">XMEAS(1)</text>
+    
+    <!-- ... idem para todos os feeds ... -->
+  </g>
+  
+  <!-- ─────────────────────────────────────────────────────────────── -->
+  <!-- ANALISADORES (Analyzers) — medições periódicas XMEAS 23-41 -->
+  <!-- ─────────────────────────────────────────────────────────────── -->
+  <g id="analyzers">
+    <!-- Dentro de cada vaso, losangos com composição -->
+    
+    <!-- Reactor composition (XMEAS 23-28) -->
+    <g id="analyzer-reactor-comp" data-xmeas="23-28">
+      <polygon class="analyzer" points="375,260 385,270 375,280 365,270" />
+      <text class="label" x="360" y="275" title="Reactor composition">XMEAS(23-28)</text>
+    </g>
+    
+    <!-- Separator composition (XMEAS 29-34) -->
+    <g id="analyzer-sep-comp" data-xmeas="29-34">
+      <polygon class="analyzer" points="675,260 685,270 675,280 665,270" />
+      <text class="label" x="660" y="275" title="Separator/Purge composition">XMEAS(29-34)</text>
+    </g>
+    
+    <!-- Product composition (XMEAS 35-41) -->
+    <g id="analyzer-product-comp" data-xmeas="35-41">
+      <polygon class="analyzer" points="875,270 885,280 875,290 865,280" />
+      <text class="label" x="860" y="285" title="Product composition">XMEAS(35-41)</text>
+    </g>
+  </g>
+  
+  <!-- ─────────────────────────────────────────────────────────────── -->
+  <!-- LEGENDA E STATUS -->
+  <!-- ─────────────────────────────────────────────────────────────── -->
+  <g id="legend" transform="translate(50, 600)">
+    <text class="label" x="0" y="0" font-weight="bold">Legenda:</text>
+    <circle class="alarm-ok" cx="10" cy="20" r="5" />
+    <text class="label" x="25" y="25">Normal</text>
+    
+    <circle class="alarm-warning" cx="150" cy="20" r="5" />
+    <text class="label" x="165" y="25">Aviso</text>
+    
+    <circle class="alarm-active" cx="280" cy="20" r="5" />
+    <text class="label" x="295" y="25">Alarme</text>
+  </g>
+</svg>

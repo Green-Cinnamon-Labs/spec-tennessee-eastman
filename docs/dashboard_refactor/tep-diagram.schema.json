@@ -1,0 +1,450 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TEP Diagram Ontology",
+  "description": "Complete mapping of XMV, XMEAS, streams, vessels, and analyzers for SVG semantic structure",
+  "version": "1.0.0",
+  "date": "2026-05-19",
+
+  "vessels": [
+    {
+      "id": "R",
+      "name": "Reactor",
+      "type": "accumulator",
+      "description": "Reator onde as reações químicas ocorrem (TCR, exotérmico)",
+      "measurements": {
+        "pressure": { "xmeas": 7, "name": "PTR", "unit": "kPa", "critical": true },
+        "temperature": { "xmeas": 9, "name": "TCR", "unit": "°C", "critical": true },
+        "level": { "xmeas": 8, "name": "VLR", "unit": "%", "critical": false },
+        "composition": { "xmeas_range": [23, 24, 25, 26, 27, 28], "type": "analyzer", "period_s": 360, "components": "A,B,C,D,E,F", "description": "Reactor liquid composition (0.1 h sampling)" }
+      },
+      "controlled_by": [
+        { "xmv": 3, "purpose": "A feed valve" },
+        { "xmv": 4, "purpose": "A&C feed valve" },
+        { "xmv": 5, "purpose": "Compressor recycle valve" },
+        { "xmv": 10, "purpose": "Reactor CW flow" },
+        { "xmv": 12, "purpose": "Agitator speed" }
+      ],
+      "inlets": ["stream-feed-A", "stream-feed-AC", "stream-recycle"],
+      "outlets": ["stream-vapor-R-to-S", "stream-purge"]
+    },
+    {
+      "id": "S",
+      "name": "Separator",
+      "type": "accumulator",
+      "description": "Separador de produtos (vapor/líquido flash)",
+      "measurements": {
+        "pressure": { "xmeas": 13, "name": "PTS", "unit": "kPa", "critical": false },
+        "temperature": { "xmeas": 11, "name": "TCS", "unit": "°C", "critical": false },
+        "level": { "xmeas": 12, "name": "VLS", "unit": "%", "critical": true },
+        "underflow": { "xmeas": 14, "name": "Sep Underflow", "unit": "m³/hr" },
+        "composition": { "xmeas_range": [29, 30, 31, 32, 33, 34], "type": "analyzer", "period_s": 600, "components": "A,B,C,D,E,F,G,H" }
+      },
+      "controlled_by": [
+        { "xmv": 7, "purpose": "Separator pot liquid flow (bottoms to stripper)" },
+        { "xmv": 11, "purpose": "Condenser CW flow" }
+      ],
+      "inlets": ["stream-vapor-R-to-S"],
+      "outlets": ["stream-liquid-S-to-C", "stream-product-overhead", "stream-condenser-to-compressor"]
+    },
+    {
+      "id": "C",
+      "name": "Stripper Column",
+      "type": "accumulator",
+      "description": "Coluna de stripping (remove leves do pesado)",
+      "measurements": {
+        "pressure": { "xmeas": 16, "name": "PTC", "unit": "kPa", "critical": false },
+        "temperature": { "xmeas": 18, "name": "TCC", "unit": "°C", "critical": false },
+        "level": { "xmeas": 15, "name": "VLC", "unit": "%", "critical": true },
+        "underflow": { "xmeas": 17, "name": "Stripper Underflow", "unit": "m³/hr" },
+        "steam_flow": { "xmeas": 19, "name": "Stripper Steam Flow", "unit": "kg/hr" }
+      },
+      "controlled_by": [
+        { "xmv": 8, "purpose": "Stripper liquid product valve" },
+        { "xmv": 9, "purpose": "Stripper steam valve" }
+      ],
+      "inlets": ["stream-liquid-S-to-C", "stream-stripper-steam"],
+      "outlets": ["stream-product-bottoms"]
+    },
+    {
+      "id": "V",
+      "name": "Compressor/Vapor Loop",
+      "type": "no-holdup",
+      "description": "Fase vapor que retorna para o reator (sem acumulação de holdup)",
+      "measurements": {
+        "flow": { "xmeas": 5, "name": "Recycle Flow", "unit": "kscmh", "critical": false },
+        "work": { "xmeas": 20, "name": "Compressor Work", "unit": "kW" }
+      },
+      "inlets": ["stream-condenser-to-compressor"],
+      "outlets": ["stream-recycle"]
+    }
+  ],
+
+  "xmv": [
+    {
+      "id": 1,
+      "name": "D Feed Flow",
+      "unit": "%",
+      "stream": "stream-feed-D",
+      "controls": { "vessel": "R", "parameter": "feed_D_rate" },
+      "nominal": 100,
+      "dynamics": "first-order valve"
+    },
+    {
+      "id": 2,
+      "name": "E Feed Flow",
+      "unit": "%",
+      "stream": "stream-feed-E",
+      "controls": { "vessel": "R", "parameter": "feed_E_rate" },
+      "nominal": 100,
+      "dynamics": "first-order valve"
+    },
+    {
+      "id": 3,
+      "name": "A Feed Flow",
+      "unit": "%",
+      "stream": "stream-feed-A",
+      "controls": { "vessel": "R", "parameter": "feed_A_rate" },
+      "nominal": 100,
+      "dynamics": "first-order valve"
+    },
+    {
+      "id": 4,
+      "name": "A&C Feed Flow",
+      "unit": "%",
+      "stream": "stream-feed-AC",
+      "controls": { "vessel": "R", "parameter": "feed_AC_rate" },
+      "nominal": 100,
+      "dynamics": "first-order valve"
+    },
+    {
+      "id": 5,
+      "name": "Compressor Recycle Valve",
+      "unit": "%",
+      "stream": "stream-recycle",
+      "controls": { "vessel": "R", "parameter": "recycle_rate" },
+      "nominal": 100,
+      "dynamics": "first-order valve",
+      "feedback_sensor": 5
+    },
+    {
+      "id": 6,
+      "name": "Purge Valve",
+      "unit": "%",
+      "stream": "stream-purge",
+      "controls": { "vessel": "R", "parameter": "purge_rate" },
+      "nominal": 100,
+      "dynamics": "first-order valve"
+    },
+    {
+      "id": 7,
+      "name": "Separator Pot Liquid Flow",
+      "unit": "%",
+      "stream": "stream-liquid-S-to-C",
+      "controls": { "vessel": "S", "parameter": "bottoms_rate" },
+      "nominal": 100,
+      "dynamics": "first-order valve",
+      "feedback_sensor": 14
+    },
+    {
+      "id": 8,
+      "name": "Stripper Liquid Product Valve",
+      "unit": "%",
+      "stream": "stream-product-bottoms",
+      "controls": { "vessel": "C", "parameter": "product_rate" },
+      "nominal": 100,
+      "dynamics": "first-order valve",
+      "feedback_sensor": 17
+    },
+    {
+      "id": 9,
+      "name": "Stripper Steam Valve",
+      "unit": "%",
+      "stream": "stream-stripper-steam",
+      "controls": { "vessel": "C", "parameter": "steam_rate" },
+      "nominal": 100,
+      "dynamics": "first-order valve",
+      "feedback_sensor": 19
+    },
+    {
+      "id": 10,
+      "name": "Reactor Coolant Water Flow",
+      "unit": "%",
+      "stream": "stream-CW-reactor",
+      "controls": { "vessel": "R", "heat_exchanger": "reactor_jacket", "parameter": "cw_flow" },
+      "nominal": 100,
+      "dynamics": "proportional valve",
+      "outlet_sensor": 21
+    },
+    {
+      "id": 11,
+      "name": "Condenser Coolant Water Flow",
+      "unit": "%",
+      "stream": "stream-CW-condenser",
+      "controls": { "vessel": "S", "heat_exchanger": "condenser", "parameter": "cw_flow" },
+      "nominal": 100,
+      "dynamics": "proportional valve",
+      "outlet_sensor": 22
+    },
+    {
+      "id": 12,
+      "name": "Agitator Speed",
+      "unit": "%",
+      "type": "mixer",
+      "vessel": "R",
+      "nominal": 100,
+      "dynamics": "direct speed control"
+    }
+  ],
+
+  "xmeas": [
+    { "id": 1, "name": "A Feed", "unit": "kscmh", "type": "flow_sensor", "location": "stream-feed-A", "vessel": "R_inlet" },
+    { "id": 2, "name": "D Feed", "unit": "kg/hr", "type": "flow_sensor", "location": "stream-feed-D", "vessel": "R_inlet" },
+    { "id": 3, "name": "E Feed", "unit": "kg/hr", "type": "flow_sensor", "location": "stream-feed-E", "vessel": "R_inlet" },
+    { "id": 4, "name": "A&C Feed", "unit": "kscmh", "type": "flow_sensor", "location": "stream-feed-AC", "vessel": "R_inlet" },
+    { "id": 5, "name": "Recycle Flow", "unit": "kscmh", "type": "flow_sensor", "location": "stream-recycle", "vessel": "V_outlet" },
+    { "id": 6, "name": "Reactor Feed Rate", "unit": "kscmh", "type": "flow_sensor", "location": "reactor_inlet_total", "vessel": "R_inlet", "note": "suma de todos feeds" },
+    { "id": 7, "name": "Reactor Pressure", "unit": "kPa", "type": "pressure_sensor", "vessel": "R", "critical": true },
+    { "id": 8, "name": "Reactor Level", "unit": "%", "type": "level_sensor", "vessel": "R", "critical": true },
+    { "id": 9, "name": "Reactor Temperature", "unit": "°C", "type": "temperature_sensor", "vessel": "R", "critical": true },
+    { "id": 10, "name": "Purge Rate", "unit": "kscmh", "type": "flow_sensor", "location": "stream-purge", "vessel": "R_outlet" },
+    { "id": 11, "name": "Separator Temperature", "unit": "°C", "type": "temperature_sensor", "vessel": "S" },
+    { "id": 12, "name": "Separator Level", "unit": "%", "type": "level_sensor", "vessel": "S", "critical": true },
+    { "id": 13, "name": "Separator Pressure", "unit": "kPa", "type": "pressure_sensor", "vessel": "S" },
+    { "id": 14, "name": "Separator Underflow", "unit": "m³/hr", "type": "flow_sensor", "location": "stream-liquid-S-to-C", "vessel": "S_outlet" },
+    { "id": 15, "name": "Stripper Level", "unit": "%", "type": "level_sensor", "vessel": "C", "critical": true },
+    { "id": 16, "name": "Stripper Pressure", "unit": "kPa", "type": "pressure_sensor", "vessel": "C" },
+    { "id": 17, "name": "Stripper Underflow", "unit": "m³/hr", "type": "flow_sensor", "location": "stream-product-bottoms", "vessel": "C_outlet" },
+    { "id": 18, "name": "Stripper Temperature", "unit": "°C", "type": "temperature_sensor", "vessel": "C" },
+    { "id": 19, "name": "Stripper Steam Flow", "unit": "kg/hr", "type": "flow_sensor", "location": "stream-stripper-steam", "vessel": "C_inlet" },
+    { "id": 20, "name": "Compressor Work", "unit": "kW", "type": "power_sensor", "vessel": "V" },
+    { "id": 21, "name": "Reactor CW Outlet Temperature", "unit": "°C", "type": "temperature_sensor", "location": "reactor_jacket_outlet" },
+    { "id": 22, "name": "Separator CW Outlet Temperature", "unit": "°C", "type": "temperature_sensor", "location": "condenser_outlet" },
+
+    { "id": 23, "name": "Reactor Feed A Composition", "unit": "mol%", "type": "analyzer", "location": "stream-reactor-feed", "component": "A", "period_s": 360, "sampling_period_h": 0.1 },
+    { "id": 24, "name": "Reactor Feed B Composition", "unit": "mol%", "type": "analyzer", "location": "stream-reactor-feed", "component": "B", "period_s": 360, "sampling_period_h": 0.1 },
+    { "id": 25, "name": "Reactor Feed C Composition", "unit": "mol%", "type": "analyzer", "location": "stream-reactor-feed", "component": "C", "period_s": 360, "sampling_period_h": 0.1 },
+    { "id": 26, "name": "Reactor Feed D Composition", "unit": "mol%", "type": "analyzer", "location": "stream-reactor-feed", "component": "D", "period_s": 360, "sampling_period_h": 0.1 },
+    { "id": 27, "name": "Reactor Feed E Composition", "unit": "mol%", "type": "analyzer", "location": "stream-reactor-feed", "component": "E", "period_s": 360, "sampling_period_h": 0.1 },
+    { "id": 28, "name": "Reactor Feed F Composition", "unit": "mol%", "type": "analyzer", "location": "stream-reactor-feed", "component": "F", "period_s": 360, "sampling_period_h": 0.1 },
+
+    { "id": 29, "name": "Purge A Composition", "unit": "mol%", "type": "analyzer", "location": "stream-purge", "component": "A", "period_s": 360, "sampling_period_h": 0.1 },
+    { "id": 30, "name": "Purge B Composition", "unit": "mol%", "type": "analyzer", "location": "stream-purge", "component": "B", "period_s": 360, "sampling_period_h": 0.1 },
+    { "id": 31, "name": "Purge C Composition", "unit": "mol%", "type": "analyzer", "location": "stream-purge", "component": "C", "period_s": 360, "sampling_period_h": 0.1 },
+    { "id": 32, "name": "Purge D Composition", "unit": "mol%", "type": "analyzer", "location": "stream-purge", "component": "D", "period_s": 360, "sampling_period_h": 0.1 },
+    { "id": 33, "name": "Purge E Composition", "unit": "mol%", "type": "analyzer", "location": "stream-purge", "component": "E", "period_s": 360, "sampling_period_h": 0.1 },
+    { "id": 34, "name": "Purge F Composition", "unit": "mol%", "type": "analyzer", "location": "stream-purge", "component": "F", "period_s": 360, "sampling_period_h": 0.1 },
+    { "id": 35, "name": "Purge G Composition", "unit": "mol%", "type": "analyzer", "location": "stream-purge", "component": "G", "period_s": 360, "sampling_period_h": 0.1 },
+    { "id": 36, "name": "Purge H Composition", "unit": "mol%", "type": "analyzer", "location": "stream-purge", "component": "H", "period_s": 360, "sampling_period_h": 0.1 },
+
+    { "id": 37, "name": "Product D Composition", "unit": "mol%", "type": "analyzer", "location": "stream-product-bottoms", "component": "D", "period_s": 900, "sampling_period_h": 0.25 },
+    { "id": 38, "name": "Product E Composition", "unit": "mol%", "type": "analyzer", "location": "stream-product-bottoms", "component": "E", "period_s": 900, "sampling_period_h": 0.25 },
+    { "id": 39, "name": "Product F Composition", "unit": "mol%", "type": "analyzer", "location": "stream-product-bottoms", "component": "F", "period_s": 900, "sampling_period_h": 0.25 },
+    { "id": 40, "name": "Product G Composition", "unit": "mol%", "type": "analyzer", "location": "stream-product-bottoms", "component": "G", "period_s": 900, "sampling_period_h": 0.25 },
+    { "id": 41, "name": "Product H Composition", "unit": "mol%", "type": "analyzer", "location": "stream-product-bottoms", "component": "H", "period_s": 900, "sampling_period_h": 0.25 }
+  ],
+
+  "streams": [
+    {
+      "id": "stream-feed-A",
+      "name": "A Feed",
+      "source": "external",
+      "destination": "R",
+      "phase": "gaseous",
+      "measurement": 1,
+      "control": 3,
+      "description": "Matéria-prima A (composto A puro)"
+    },
+    {
+      "id": "stream-feed-D",
+      "name": "D Feed",
+      "source": "external",
+      "destination": "R",
+      "phase": "liquid",
+      "measurement": 2,
+      "control": 1,
+      "description": "Matéria-prima D"
+    },
+    {
+      "id": "stream-feed-E",
+      "name": "E Feed",
+      "source": "external",
+      "destination": "R",
+      "phase": "liquid",
+      "measurement": 3,
+      "control": 2,
+      "description": "Matéria-prima E"
+    },
+    {
+      "id": "stream-feed-AC",
+      "name": "A&C Feed",
+      "source": "external",
+      "destination": "R",
+      "phase": "gaseous",
+      "measurement": 4,
+      "control": 4,
+      "description": "Mistura de A e C (razão variável por IDV 1)"
+    },
+    {
+      "id": "stream-reactor-feed",
+      "name": "Reactor Feed (Total)",
+      "source": "mixed",
+      "destination": "R",
+      "phase": "mixed",
+      "measurement": 6,
+      "composition_analyzer": [29, 30, 31, 32, 33, 34, 35, 36],
+      "description": "Somatória de todos os feeds ao reator (A, D, E, A&C); ponto de amostragem para analisadores XMEAS(29-36)"
+    },
+    {
+      "id": "stream-recycle",
+      "name": "Recycle (Compressor → Reactor)",
+      "source": "V",
+      "destination": "R",
+      "phase": "gaseous",
+      "measurement": 5,
+      "control": 5,
+      "description": "Vapor reciclado do compressor para reator"
+    },
+    {
+      "id": "stream-purge",
+      "name": "Purge (Reactor → Vent)",
+      "source": "R",
+      "destination": "external",
+      "phase": "gaseous",
+      "measurement": 10,
+      "control": 6,
+      "composition_analyzer": [29, 30, 31, 32, 33, 34, 35, 36],
+      "description": "Vent de gases não-condensáveis (inertes, A em excesso)"
+    },
+    {
+      "id": "stream-vapor-R-to-S",
+      "name": "Vapor (Reactor → Separator)",
+      "source": "R",
+      "destination": "S",
+      "phase": "vapor",
+      "description": "Saída de vapor do reator para separação flash"
+    },
+    {
+      "id": "stream-liquid-S-to-C",
+      "name": "Bottoms (Separator → Stripper)",
+      "source": "S",
+      "destination": "C",
+      "phase": "liquid",
+      "measurement": 14,
+      "control": 7,
+      "description": "Produto líquido pesado do separador para stripper"
+    },
+    {
+      "id": "stream-product-overhead",
+      "name": "Overhead (Separator → Condenser)",
+      "source": "S",
+      "destination": "condenser",
+      "phase": "vapor",
+      "description": "Produto vapor leve (condensáveis)"
+    },
+    {
+      "id": "stream-condenser-to-compressor",
+      "name": "Condensed (Condenser → Compressor)",
+      "source": "condenser",
+      "destination": "V",
+      "phase": "liquid",
+      "description": "Líquido condensado para reciclo via compressor"
+    },
+    {
+      "id": "stream-product-bottoms",
+      "name": "Product (Stripper → Exit)",
+      "source": "C",
+      "destination": "external",
+      "phase": "liquid",
+      "measurement": 17,
+      "control": 8,
+      "composition_analyzer": [37, 38, 39, 40, 41],
+      "description": "Produto final pesado"
+    },
+    {
+      "id": "stream-stripper-steam",
+      "name": "Steam (Source → Stripper)",
+      "source": "external",
+      "destination": "C",
+      "phase": "vapor",
+      "measurement": 19,
+      "control": 9,
+      "description": "Vapor de aquecimento para stripping"
+    },
+    {
+      "id": "stream-CW-reactor",
+      "name": "Coolant Water (Reactor Jacket)",
+      "source": "external",
+      "destination": "R_jacket",
+      "phase": "liquid",
+      "control": 10,
+      "outlet_sensor": 21,
+      "description": "Água de resfriamento para jaqueta do reator"
+    },
+    {
+      "id": "stream-CW-condenser",
+      "name": "Coolant Water (Condenser)",
+      "source": "external",
+      "destination": "condenser",
+      "phase": "liquid",
+      "control": 11,
+      "outlet_sensor": 22,
+      "description": "Água de resfriamento para condensador"
+    }
+  ],
+
+  "analyzers": [
+    {
+      "id": "analyzer-reactor-feed-composition",
+      "location": "stream-reactor-feed",
+      "stream_id": 6,
+      "measurements": [23, 24, 25, 26, 27, 28],
+      "components": ["A", "B", "C", "D", "E", "F"],
+      "period_s": 360,
+      "sampling_period_h": 0.1,
+      "delay_s": 0,
+      "description": "Análise de composição da alimentação ao reator (stream 6, XMEAS 23-28, 0.1h = 360s)"
+    },
+    {
+      "id": "analyzer-purge-composition",
+      "location": "stream-purge",
+      "stream_id": 9,
+      "measurements": [29, 30, 31, 32, 33, 34, 35, 36],
+      "components": ["A", "B", "C", "D", "E", "F", "G", "H"],
+      "period_s": 360,
+      "sampling_period_h": 0.1,
+      "delay_s": 0,
+      "description": "Análise de composição do gás de purga (stream 9, XMEAS 29-36, 0.1h = 360s)"
+    },
+    {
+      "id": "analyzer-product-composition",
+      "location": "stream-product-bottoms",
+      "stream_id": 11,
+      "measurements": [37, 38, 39, 40, 41],
+      "components": ["D", "E", "F", "G", "H"],
+      "period_s": 900,
+      "sampling_period_h": 0.25,
+      "delay_s": 0,
+      "description": "Análise de composição do produto final (stream 11, XMEAS 37-41, 0.25h = 900s)"
+    }
+  ],
+
+  "notes": {
+    "coordinate_system": "SVG viewBox recomendado: 0 0 1400 900",
+    "vessel_layout": {
+      "R": { "x": 300, "y": 200, "width": 150, "height": 120 },
+      "S": { "x": 650, "y": 200, "width": 150, "height": 120 },
+      "C": { "x": 950, "y": 200, "width": 150, "height": 120 }
+    },
+    "disturbance_mapping": {
+      "IDV_1": { "affects": ["XMEAS 4 composition"], "parameter": "AC_ratio" },
+      "IDV_2": { "affects": ["XMEAS 4 composition"], "parameter": "B_fraction_in_AC" },
+      "IDV_3": { "affects": ["XMEAS 2 temperature"], "parameter": "D_feed_temp" },
+      "IDV_4": { "affects": ["XMEAS 21"], "parameter": "CW_reactor_inlet_temp" },
+      "IDV_5": { "affects": ["XMEAS 22"], "parameter": "CW_condenser_inlet_temp" },
+      "IDV_6": { "affects": ["XMEAS 1"], "parameter": "A_feed_loss" },
+      "IDV_7": { "affects": ["XMEAS 5"], "parameter": "C_header_pressure_drop" },
+      "IDV_14": { "affects": ["XMV 10 stuck"], "parameter": "reactor_cw_valve_stuck" },
+      "IDV_16": { "affects": ["XMV 1 stuck"], "parameter": "D_feed_valve_stuck" }
+    }
+  }
+}
