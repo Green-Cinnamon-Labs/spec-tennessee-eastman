@@ -1,0 +1,1028 @@
+<mxfile host="Electron" agent="Claude Code">
+  <diagram name="TEP-PID" id="tep-main-diagram">
+    <mxGraphModel dx="1574" dy="1091" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <object label="Feed Mixer" id="node-reactor-feed-mixer">
+          <mxCell parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;" vertex="1">
+            <mxGeometry height="227" width="48" x="199" y="241.5" as="geometry" />
+          </mxCell>
+        </object>
+        <mxCell id="unit-reactor" parent="1" style="shape=mxgraph.pid.vessels.tank;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=1;fontSize=13;labelPosition=center;verticalLabelPosition=bottom;align=center;verticalAlign=top;" value="Reactor" vertex="1">
+          <mxGeometry height="243" width="160" x="343" y="230" as="geometry" />
+        </mxCell>
+        <object label="" id="stream-10-out">
+          <mxCell edge="1" parent="1" source="unit-separator" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;exitPerimeter=0;fontFamily=Helvetica;fontSize=12;fontColor=default;" target="unit-compressor-1">
+            <mxGeometry relative="1" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="Separator&lt;br&gt;Vap/Liq" id="unit-separator">
+          <mxCell parent="1" style="shape=mxgraph.pid.vessels.tank;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;" vertex="1">
+            <mxGeometry height="220" width="90" x="959" y="43.25" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="" id="stream-08-bypass-down">
+          <mxCell edge="1" parent="1" source="unit-compressor-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.86;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;fontFamily=Helvetica;fontSize=12;fontColor=default;" target="actuator-xmv-05">
+            <mxGeometry relative="1" as="geometry">
+              <Array as="points">
+                <mxPoint x="856" y="-54" />
+                <mxPoint x="856" y="-145" />
+              </Array>
+              <mxPoint x="842.3332977294922" y="-110.66668701171875" as="targetPoint" />
+            </mxGeometry>
+          </mxCell>
+        </object>
+        <object label="Compressor" id="unit-compressor-3">
+          <mxCell parent="1" style="verticalLabelPosition=bottom;outlineConnect=0;align=center;dashed=0;html=1;verticalAlign=top;shape=mxgraph.pid.compressors.centrifugal_compressor;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;rotation=0;direction=east;flipV=0;legacyAnchorPoints=0;flipH=1;" vertex="1">
+            <mxGeometry height="47" width="53" x="898" y="-78" as="geometry" />
+          </mxCell>
+        </object>
+        <mxCell id="unit-stripper" parent="1" style="shape=mxgraph.pid.vessels.tank;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;" value="Stripper" vertex="1">
+          <mxGeometry height="311" width="90" x="716" y="313" as="geometry" />
+        </mxCell>
+        <object label="Feed 01 (A)" id="data-01-a-feed">
+          <mxCell parent="1" style="shape=step;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1">
+            <mxGeometry height="35" width="100" x="-69" y="280.5" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="Feed 02 (D)" id="data-02-d-feed">
+          <mxCell parent="1" style="shape=step;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1">
+            <mxGeometry height="35" width="100" x="-69" y="337.5" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="Feed 03 (E)" id="data-03-e-feed">
+          <mxCell parent="1" style="shape=step;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1">
+            <mxGeometry height="35" width="100" x="-69" y="395" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="Feed 04 (C)" id="data-04-c-feed">
+          <mxCell parent="1" style="shape=step;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1">
+            <mxGeometry height="35" width="100" x="-69" y="503" as="geometry" />
+          </mxCell>
+        </object>
+        <mxCell id="stream-09-purge" parent="1" style="shape=step;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontStyle=1;" value="Purge (09)" vertex="1">
+          <mxGeometry height="35" width="100" x="1141" y="-35.5" as="geometry" />
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-96" edge="1" parent="1" source="stream-11-product" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;" target="analyzer-11-product">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="stream-11-product" parent="1" style="shape=step;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;" value="Product (11)" vertex="1">
+          <mxGeometry height="35" width="100" x="1141" y="734" as="geometry" />
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-92" edge="1" parent="1" source="analyzer-06-feed" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;fontFamily=Helvetica;fontSize=12;fontColor=default;dashed=1;endArrow=none;endFill=0;" target="node-reactor-feed-mixer">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="170" y="242" />
+              <mxPoint x="199" y="242" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <object label="Analyzer" id="analyzer-06-feed">
+          <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontColor=#333333;horizontal=0;fontFamily=Helvetica;" vertex="1">
+            <mxGeometry height="196" width="37" x="151" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="" id="stream-01-a-feed-up">
+          <mxCell edge="1" parent="1" source="data-01-a-feed" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" target="actuator-xmv-03">
+            <mxGeometry relative="1" x="0.0278" y="-2" as="geometry">
+              <mxPoint as="offset" />
+            </mxGeometry>
+          </mxCell>
+        </object>
+        <object label="" id="stream-02-d-feed-down">
+          <mxCell edge="1" parent="1" source="actuator-xmv-01" style="edgeStyle=orthogonalEdgeStyle;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="node-reactor-feed-mixer">
+            <mxGeometry relative="1" x="-1" y="46" as="geometry">
+              <mxPoint x="-46" y="32" as="offset" />
+              <mxPoint x="199" y="281" as="targetPoint" />
+            </mxGeometry>
+          </mxCell>
+        </object>
+        <object label="" id="stream-03-e-feed-up">
+          <mxCell edge="1" parent="1" source="data-03-e-feed" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" target="actuator-xmv-02">
+            <mxGeometry relative="1" x="0.037" as="geometry">
+              <mxPoint as="offset" />
+            </mxGeometry>
+          </mxCell>
+        </object>
+        <object label="04" id="stream-04-c-feed-down">
+          <mxCell edge="1" parent="1" source="actuator-xmv-04" style="edgeStyle=orthogonalEdgeStyle;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" target="unit-stripper">
+            <mxGeometry relative="1" x="-0.2136" y="-3" as="geometry">
+              <mxPoint as="offset" />
+              <Array as="points">
+                <mxPoint x="650" y="520" />
+                <mxPoint x="650" y="468" />
+              </Array>
+            </mxGeometry>
+          </mxCell>
+        </object>
+        <mxCell id="stream-06-mixer-reactor" edge="1" parent="1" source="node-reactor-feed-mixer" style="edgeStyle=orthogonalEdgeStyle;rounded=0;exitX=1;exitY=0.75;exitDx=0;exitDy=0;entryX=0;entryY=0.75;entryDx=0;entryDy=0;" target="unit-reactor" value="06">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <object label="07" id="stream-07-reactor-condenser">
+          <mxCell edge="1" parent="1" source="unit-reactor" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" target="unit-condenser">
+            <mxGeometry relative="1" as="geometry">
+              <Array as="points">
+                <mxPoint x="471" y="154" />
+              </Array>
+              <mxPoint x="381" y="168" as="sourcePoint" />
+              <mxPoint x="493.2500000000002" y="93.25" as="targetPoint" />
+            </mxGeometry>
+          </mxCell>
+        </object>
+        <object label="" id="stream-10-in">
+          <mxCell edge="1" parent="1" source="unit-condenser" style="edgeStyle=orthogonalEdgeStyle;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;exitPerimeter=0;" target="unit-separator">
+            <mxGeometry relative="1" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="" id="stream-09-up">
+          <mxCell edge="1" parent="1" source="actuator-xmv-06" style="edgeStyle=orthogonalEdgeStyle;rounded=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="stream-09-purge">
+            <mxGeometry relative="1" x="0.0653" as="geometry">
+              <mxPoint as="offset" />
+              <Array as="points" />
+            </mxGeometry>
+          </mxCell>
+        </object>
+        <object label="" id="stream-08-down">
+          <mxCell edge="1" parent="1" source="unit-separator" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" target="unit-compressor-3">
+            <mxGeometry relative="1" as="geometry">
+              <Array as="points">
+                <mxPoint x="996" y="-54" />
+              </Array>
+              <mxPoint x="987" y="88" as="sourcePoint" />
+              <mxPoint x="942" y="-54" as="targetPoint" />
+            </mxGeometry>
+          </mxCell>
+        </object>
+        <object label="08 recycle" id="stream-08-up">
+          <mxCell edge="1" parent="1" source="unit-compressor-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" target="node-reactor-feed-mixer">
+            <mxGeometry relative="1" as="geometry">
+              <mxPoint x="553" y="3" as="sourcePoint" />
+            </mxGeometry>
+          </mxCell>
+        </object>
+        <object label="" id="stream-10-up">
+          <mxCell edge="1" parent="1" source="actuator-xmv-07" style="edgeStyle=orthogonalEdgeStyle;rounded=0;entryX=1;entryY=0.3;entryDx=0;entryDy=0;exitX=0.035;exitY=0.741;exitDx=0;exitDy=0;exitPerimeter=0;" target="unit-stripper">
+            <mxGeometry relative="1" x="0.2568" as="geometry">
+              <mxPoint as="offset" />
+              <Array as="points" />
+              <mxPoint x="919.5" y="391" as="sourcePoint" />
+            </mxGeometry>
+          </mxCell>
+        </object>
+        <object label="05 recycle" recycle="05" id="stream-05-stripper-mixer">
+          <mxCell edge="1" parent="1" source="unit-stripper" style="edgeStyle=orthogonalEdgeStyle;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitPerimeter=0;" target="node-reactor-feed-mixer">
+            <mxGeometry relative="1" as="geometry">
+              <Array as="points">
+                <mxPoint x="761" y="-7" />
+                <mxPoint x="223" y="-7" />
+              </Array>
+            </mxGeometry>
+          </mxCell>
+        </object>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-229" connectable="0" parent="stream-05-stripper-mixer" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];strokeColor=default;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" value="05" vertex="1">
+          <mxGeometry relative="1" x="-0.7813" y="-5" as="geometry">
+            <mxPoint y="-1" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <object label="" id="stream-11-down">
+          <mxCell edge="1" parent="1" source="unit-stripper" style="edgeStyle=orthogonalEdgeStyle;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.43;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" target="unit-compressor-2">
+            <mxGeometry relative="1" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="" stream-cws-condenser-out="13" id="stream-cws-condenser-up">
+          <mxCell edge="1" parent="1" source="actuator-xmv-11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;fontFamily=Helvetica;fontSize=12;fontColor=default;" target="DX2hcvjyZLIlzarhZcH8-77">
+            <mxGeometry relative="1" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="Condenser" id="unit-condenser">
+          <mxCell parent="1" style="shape=mxgraph.pid.vessels.tank;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1;rotation=90;flipH=1;legacyAnchorPoints=0;horizontal=0;flipV=1;direction=west;" vertex="1">
+            <mxGeometry height="160.5" width="45" x="553" y="73" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="Compressor" id="unit-compressor-2">
+          <mxCell parent="1" style="verticalLabelPosition=bottom;outlineConnect=0;align=center;dashed=0;html=1;verticalAlign=top;shape=mxgraph.pid.compressors.centrifugal_compressor;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;rotation=0;direction=east;flipV=0;legacyAnchorPoints=0;flipH=0;" vertex="1">
+            <mxGeometry height="47" width="53" x="738" y="728" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="" id="stream-stripper-boiler-in">
+          <mxCell edge="1" parent="1" source="unit-stripper-boiler" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.08;exitDx=0;exitDy=0;exitPerimeter=0;fontFamily=Helvetica;fontSize=12;fontColor=default;entryX=1.008;entryY=0.642;entryDx=0;entryDy=0;entryPerimeter=0;" target="unit-stripper">
+            <mxGeometry relative="1" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="boiler" id="unit-stripper-boiler">
+          <mxCell parent="1" style="shape=mxgraph.pid.vessels.tank;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#e1d5e7;strokeColor=#9673a6;fontStyle=1;" vertex="1">
+            <mxGeometry height="102.5" width="35" x="853" y="504.75" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="" id="stream-stripper-boiler-out">
+          <mxCell edge="1" parent="1" source="unit-stripper" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=classic;endFill=1;entryX=0;entryY=0.92;entryDx=0;entryDy=0;entryPerimeter=0;exitX=1;exitY=0.92;exitDx=0;exitDy=0;exitPerimeter=0;" target="unit-stripper-boiler">
+            <mxGeometry relative="1" as="geometry">
+              <mxPoint x="801" y="599" as="sourcePoint" />
+              <mxPoint x="1051" y="846.5" as="targetPoint" />
+            </mxGeometry>
+          </mxCell>
+        </object>
+        <object label="" stream-11-up="11" id="product-stream">
+          <mxCell edge="1" parent="1" source="actuator-xmv-08" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" target="stream-11-product">
+            <mxGeometry relative="1" as="geometry">
+              <mxPoint x="1111" y="750.5" as="sourcePoint" />
+              <mxPoint x="829" y="857.5" as="targetPoint" />
+            </mxGeometry>
+          </mxCell>
+        </object>
+        <object label="" id="stream-01-a-feed-down">
+          <mxCell edge="1" parent="1" source="actuator-xmv-03" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.25;entryDx=0;entryDy=0;fontFamily=Helvetica;fontSize=12;fontColor=default;" target="node-reactor-feed-mixer">
+            <mxGeometry relative="1" as="geometry" />
+          </mxCell>
+        </object>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-58" connectable="0" parent="stream-01-a-feed-down" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];strokeColor=default;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" value="01" vertex="1">
+          <mxGeometry relative="1" x="-0.1078" y="3" as="geometry">
+            <mxPoint x="3" y="3" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <object label="" id="actuator-xmv-03">
+          <mxCell parent="1" style="verticalLabelPosition=bottom;align=center;html=1;verticalAlign=top;pointerEvents=1;dashed=0;shape=mxgraph.pid2valves.valve;valveType=gate;actuator=diaph;strokeColor=default;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" vertex="1">
+            <mxGeometry height="30" width="30" x="112" y="283" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="" id="stream-03-e-feed-down">
+          <mxCell edge="1" parent="1" source="actuator-xmv-02" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.75;entryDx=0;entryDy=0;fontFamily=Helvetica;fontSize=12;fontColor=default;" target="node-reactor-feed-mixer">
+            <mxGeometry relative="1" as="geometry" />
+          </mxCell>
+        </object>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-57" connectable="0" parent="stream-03-e-feed-down" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];strokeColor=default;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" value="03" vertex="1">
+          <mxGeometry relative="1" x="-0.1283" y="2" as="geometry">
+            <mxPoint x="-1" y="4" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <object label="" id="actuator-xmv-02">
+          <mxCell parent="1" style="verticalLabelPosition=bottom;align=center;html=1;verticalAlign=top;pointerEvents=1;dashed=0;shape=mxgraph.pid2valves.valve;valveType=gate;actuator=diaph;strokeColor=default;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" vertex="1">
+            <mxGeometry height="30" width="30" x="112" y="397.5" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="" id="stream-02-d-feed-up">
+          <mxCell edge="1" parent="1" source="data-02-d-feed" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" target="actuator-xmv-01">
+            <mxGeometry relative="1" x="0.0527" y="11" as="geometry">
+              <mxPoint as="offset" />
+              <mxPoint x="33" y="355" as="sourcePoint" />
+              <mxPoint x="199" y="355" as="targetPoint" />
+            </mxGeometry>
+          </mxCell>
+        </object>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-23" connectable="0" parent="stream-02-d-feed-up" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];strokeColor=default;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" value="02" vertex="1">
+          <mxGeometry relative="1" x="-0.0706" as="geometry">
+            <mxPoint x="97" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <object label="" id="actuator-xmv-01">
+          <mxCell parent="1" style="verticalLabelPosition=bottom;align=center;html=1;verticalAlign=top;pointerEvents=1;dashed=0;shape=mxgraph.pid2valves.valve;valveType=gate;actuator=diaph;strokeColor=default;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" vertex="1">
+            <mxGeometry height="30" width="30" x="112" y="340" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="" id="stream-04-c-feed-up">
+          <mxCell edge="1" parent="1" source="data-04-c-feed" style="edgeStyle=orthogonalEdgeStyle;rounded=0;" target="actuator-xmv-04">
+            <mxGeometry relative="1" as="geometry">
+              <mxPoint x="93" y="521" as="sourcePoint" />
+              <mxPoint x="789" y="521" as="targetPoint" />
+            </mxGeometry>
+          </mxCell>
+        </object>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-27" connectable="0" parent="stream-04-c-feed-up" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];strokeColor=default;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" value="04" vertex="1">
+          <mxGeometry relative="1" x="0.4003" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <object label="" id="actuator-xmv-04">
+          <mxCell parent="1" style="verticalLabelPosition=bottom;align=center;html=1;verticalAlign=top;pointerEvents=1;dashed=0;shape=mxgraph.pid2valves.valve;valveType=gate;actuator=diaph;strokeColor=default;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" vertex="1">
+            <mxGeometry height="30" width="30" x="158" y="505.5" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="Compressor" id="unit-compressor-1">
+          <mxCell parent="1" style="verticalLabelPosition=bottom;outlineConnect=0;align=center;dashed=0;html=1;verticalAlign=top;shape=mxgraph.pid.compressors.centrifugal_compressor;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontStyle=1;rotation=0;direction=east;flipV=0;legacyAnchorPoints=0;flipH=1;" vertex="1">
+            <mxGeometry height="47" width="53" x="977.5" y="315.5" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="" id="stream-09-down">
+          <mxCell edge="1" parent="1" source="unit-separator" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=none;endFill=0;" target="actuator-xmv-06">
+            <mxGeometry relative="1" as="geometry">
+              <Array as="points">
+                <mxPoint x="996" y="-13" />
+              </Array>
+              <mxPoint x="980.76" y="100.99" as="sourcePoint" />
+              <mxPoint x="1072" y="1.2300000000000093" as="targetPoint" />
+            </mxGeometry>
+          </mxCell>
+        </object>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-39" connectable="0" parent="stream-09-down" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];strokeColor=default;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" value="09" vertex="1">
+          <mxGeometry relative="1" x="0.6979" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <object label="" id="actuator-xmv-06">
+          <mxCell parent="1" style="verticalLabelPosition=bottom;align=center;html=1;verticalAlign=top;pointerEvents=1;dashed=0;shape=mxgraph.pid2valves.valve;valveType=gate;actuator=diaph;strokeColor=default;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" vertex="1">
+            <mxGeometry height="30" width="30" x="1072" y="-33" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="" id="stream-11-up">
+          <mxCell edge="1" parent="1" source="unit-compressor-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;endArrow=none;endFill=0;" target="actuator-xmv-08">
+            <mxGeometry relative="1" as="geometry">
+              <mxPoint x="841" y="757.5" as="sourcePoint" />
+              <mxPoint x="1141" y="757.5" as="targetPoint" />
+            </mxGeometry>
+          </mxCell>
+        </object>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-36" connectable="0" parent="stream-11-up" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];strokeColor=default;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" value="11" vertex="1">
+          <mxGeometry relative="1" x="0.4702" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <object label="" id="actuator-xmv-08">
+          <mxCell parent="1" style="verticalLabelPosition=bottom;align=center;html=1;verticalAlign=top;pointerEvents=1;dashed=0;shape=mxgraph.pid2valves.valve;valveType=gate;actuator=diaph;strokeColor=default;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" vertex="1">
+            <mxGeometry height="30" width="30" x="1070" y="736.5" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="" id="stream-08-bypass-up">
+          <mxCell edge="1" parent="1" source="actuator-xmv-05" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Helvetica;fontSize=12;fontColor=default;">
+            <mxGeometry relative="1" as="geometry">
+              <Array as="points">
+                <mxPoint x="983" y="-145" />
+              </Array>
+              <mxPoint x="982.6666259765625" y="-56.66668701171875" as="targetPoint" />
+            </mxGeometry>
+          </mxCell>
+        </object>
+        <object label="" id="actuator-xmv-05">
+          <mxCell parent="1" style="verticalLabelPosition=bottom;align=center;html=1;verticalAlign=top;pointerEvents=1;dashed=0;shape=mxgraph.pid2valves.valve;valveType=gate;actuator=diaph;strokeColor=default;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" vertex="1">
+            <mxGeometry height="30" width="30" x="909.5" y="-165" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="" id="stream-10-down">
+          <mxCell edge="1" parent="1" source="unit-compressor-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;exitX=0.86;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;endArrow=none;endFill=0;" target="actuator-xmv-07">
+            <mxGeometry relative="1" as="geometry">
+              <mxPoint x="979" y="339.5" as="sourcePoint" />
+              <mxPoint x="808" y="456.5" as="targetPoint" />
+            </mxGeometry>
+          </mxCell>
+        </object>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-56" connectable="0" parent="stream-10-down" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];strokeColor=default;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" value="10" vertex="1">
+          <mxGeometry relative="1" x="0.3275" y="-1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <object label="" id="actuator-xmv-07">
+          <mxCell parent="1" style="verticalLabelPosition=bottom;align=center;html=1;verticalAlign=top;pointerEvents=1;dashed=0;shape=mxgraph.pid2valves.valve;valveType=gate;actuator=diaph;strokeColor=default;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" vertex="1">
+            <mxGeometry height="30" width="30" x="862" y="324" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="" stream-cws-reactor-down="12" id="stream-cws-reactor-out">
+          <mxCell edge="1" parent="1" source="actuator-xmv-10-coil" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;exitPerimeter=0;fontFamily=Helvetica;fontSize=12;fontColor=default;">
+            <mxGeometry relative="1" as="geometry">
+              <Array as="points">
+                <mxPoint x="515" y="378" />
+                <mxPoint x="515" y="378" />
+              </Array>
+              <mxPoint x="525" y="378" as="targetPoint" />
+            </mxGeometry>
+          </mxCell>
+        </object>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-230" connectable="0" parent="stream-cws-reactor-out" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];strokeColor=default;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" value="12" vertex="1">
+          <mxGeometry relative="1" x="0.1322" y="-1" as="geometry">
+            <mxPoint x="-7" y="1" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <object label="" id="actuator-xmv-10-coil">
+          <mxCell parent="1" style="shape=mxgraph.pid.heat_exchangers.heat_exchanger_(coil_tubes);html=1;pointerEvents=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;dashed=0;strokeColor=default;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;rotation=-90;" vertex="1">
+            <mxGeometry height="30" width="102" x="415" y="337.5" as="geometry" />
+          </mxCell>
+        </object>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-70" parent="1" style="shape=step;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;flipH=1;legacyAnchorPoints=0;" value="CWS" vertex="1">
+          <mxGeometry height="35" width="100" x="579" y="292" as="geometry" />
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-73" parent="1" style="shape=step;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;flipH=0;legacyAnchorPoints=0;" value="CWS" vertex="1">
+          <mxGeometry height="35" width="100" x="579" y="360" as="geometry" />
+        </mxCell>
+        <object label="" id="stream-cws-reactor-in">
+          <mxCell edge="1" parent="1" source="DX2hcvjyZLIlzarhZcH8-70" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.93;entryY=1;entryDx=0;entryDy=0;entryPerimeter=0;fontFamily=Helvetica;fontSize=12;fontColor=default;" target="actuator-xmv-10-coil">
+            <mxGeometry relative="1" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="" id="stream-cws-reactor-up">
+          <mxCell edge="1" parent="1" source="actuator-xmv-10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontFamily=Helvetica;fontSize=12;fontColor=default;" target="DX2hcvjyZLIlzarhZcH8-73">
+            <mxGeometry relative="1" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="" id="stream-cws-condenser-in">
+          <mxCell edge="1" parent="1" source="DX2hcvjyZLIlzarhZcH8-76" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;fontFamily=Helvetica;fontSize=12;fontColor=default;" target="unit-condenser">
+            <mxGeometry relative="1" as="geometry" />
+          </mxCell>
+        </object>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-76" parent="1" style="shape=step;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;flipH=1;legacyAnchorPoints=0;" value="CWS" vertex="1">
+          <mxGeometry height="35" width="100" x="654" y="66" as="geometry" />
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-77" parent="1" style="shape=step;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;flipH=0;legacyAnchorPoints=0;" value="CWS" vertex="1">
+          <mxGeometry height="35" width="100" x="654" y="209" as="geometry" />
+        </mxCell>
+        <object label="" id="actuator-xmv-10">
+          <mxCell parent="1" style="verticalLabelPosition=bottom;align=center;html=1;verticalAlign=top;pointerEvents=1;dashed=0;shape=mxgraph.pid2valves.valve;valveType=gate;actuator=diaph;strokeColor=default;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" vertex="1">
+            <mxGeometry height="30" width="30" x="525" y="362.5" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="" stream-cws-condenser-down="13" id="stream-cws-condenser-out">
+          <mxCell edge="1" parent="1" source="unit-condenser" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontFamily=Helvetica;fontSize=12;fontColor=default;" target="actuator-xmv-11">
+            <mxGeometry relative="1" as="geometry">
+              <mxPoint x="576" y="176" as="sourcePoint" />
+              <mxPoint x="644" y="229" as="targetPoint" />
+            </mxGeometry>
+          </mxCell>
+        </object>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-231" connectable="0" parent="stream-cws-condenser-out" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];strokeColor=default;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" value="13" vertex="1">
+          <mxGeometry relative="1" x="0.0777" y="-1" as="geometry">
+            <mxPoint x="1" y="-13" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <object label="" id="actuator-xmv-11">
+          <mxCell parent="1" style="verticalLabelPosition=bottom;align=center;html=1;verticalAlign=top;pointerEvents=1;dashed=0;shape=mxgraph.pid2valves.valve;valveType=gate;actuator=diaph;strokeColor=default;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" vertex="1">
+            <mxGeometry height="30" width="30" x="598" y="211.5" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="" id="actuator-xmv-09">
+          <mxCell parent="1" style="verticalLabelPosition=bottom;align=center;html=1;verticalAlign=top;pointerEvents=1;dashed=0;shape=mxgraph.pid2valves.valve;valveType=gate;actuator=diaph;strokeColor=default;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" vertex="1">
+            <mxGeometry height="30" width="30" x="916" y="497.75" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="" id="stream-stm-boiler-down">
+          <mxCell edge="1" parent="1" source="DX2hcvjyZLIlzarhZcH8-86" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;fontFamily=Helvetica;fontSize=12;fontColor=default;" target="actuator-xmv-09">
+            <mxGeometry relative="1" as="geometry" />
+          </mxCell>
+        </object>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-86" parent="1" style="shape=step;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;flipH=1;legacyAnchorPoints=0;" value="Stm" vertex="1">
+          <mxGeometry height="35" width="100" x="985" y="495.25" as="geometry" />
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-87" parent="1" style="shape=step;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;flipH=0;legacyAnchorPoints=0;" value="Cond" vertex="1">
+          <mxGeometry height="35" width="100" x="982" y="582" as="geometry" />
+        </mxCell>
+        <object label="" stream-stm-boiler-up="x" id="stream-stm-boiler-in">
+          <mxCell edge="1" parent="1" source="actuator-xmv-09" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.08;entryDx=0;entryDy=0;entryPerimeter=0;fontFamily=Helvetica;fontSize=12;fontColor=default;" target="unit-stripper-boiler">
+            <mxGeometry relative="1" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="" id="stream-cond-boiler-out">
+          <mxCell edge="1" parent="1" source="unit-stripper-boiler" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.92;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;fontFamily=Helvetica;fontSize=12;fontColor=default;exitPerimeter=0;" target="DX2hcvjyZLIlzarhZcH8-87">
+            <mxGeometry relative="1" as="geometry" />
+          </mxCell>
+        </object>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-94" edge="1" parent="1" source="analyzer-09-purge" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;" target="stream-09-purge">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <object label="Analyzer" id="analyzer-09-purge">
+          <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontColor=#333333;horizontal=0;fontFamily=Helvetica;spacingTop=0;" vertex="1">
+            <mxGeometry height="247" width="37" x="1172.5" y="43.25" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="Analyzer" id="analyzer-11-product">
+          <mxCell parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontColor=#333333;horizontal=0;fontFamily=Helvetica;spacingTop=0;" vertex="1">
+            <mxGeometry height="169" width="37" x="1172.5" y="501" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="XA" id="sensor-xmeas-23">
+          <mxCell parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" vertex="1">
+            <mxGeometry height="24" width="24" x="1226" y="48.75" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="XB" id="sensor-xmeas-24">
+          <mxCell parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" vertex="1">
+            <mxGeometry height="24" width="24" x="1226" y="79.75" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="XC" id="sensor-xmeas-25">
+          <mxCell parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" vertex="1">
+            <mxGeometry height="24" width="24" x="1226" y="108.75" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="XD" id="sensor-xmeas-26">
+          <mxCell parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" vertex="1">
+            <mxGeometry height="24" width="24" x="1226" y="139.75" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="XE" id="sensor-xmeas-27">
+          <mxCell parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" vertex="1">
+            <mxGeometry height="24" width="24" x="1226" y="169.75" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="XF" id="sensor-xmeas-28">
+          <mxCell parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" vertex="1">
+            <mxGeometry height="24" width="24" x="1226" y="200.75" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="XG" id="sensor-xmeas-29">
+          <mxCell parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" vertex="1">
+            <mxGeometry height="24" width="24" x="1226" y="229.75" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="XH" id="sensor-xmeas-30">
+          <mxCell parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" vertex="1">
+            <mxGeometry height="24" width="24" x="1226" y="260.75" as="geometry" />
+          </mxCell>
+        </object>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-105" edge="1" parent="1" source="sensor-xmeas-23" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.794;entryY=0.071;entryDx=0;entryDy=0;entryPerimeter=0;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;" target="analyzer-09-purge">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-107" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.794;entryY=0.071;entryDx=0;entryDy=0;entryPerimeter=0;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1226" y="91.67" as="sourcePoint" />
+            <mxPoint x="1202" y="91.67" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-108" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.794;entryY=0.071;entryDx=0;entryDy=0;entryPerimeter=0;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1226" y="120.67" as="sourcePoint" />
+            <mxPoint x="1202" y="120.67" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-109" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.794;entryY=0.071;entryDx=0;entryDy=0;entryPerimeter=0;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1226" y="151.67" as="sourcePoint" />
+            <mxPoint x="1202" y="151.67" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-110" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.794;entryY=0.071;entryDx=0;entryDy=0;entryPerimeter=0;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1226" y="181.67" as="sourcePoint" />
+            <mxPoint x="1202" y="181.67" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-111" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.794;entryY=0.071;entryDx=0;entryDy=0;entryPerimeter=0;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1226" y="212.67000000000002" as="sourcePoint" />
+            <mxPoint x="1202" y="212.67000000000002" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-112" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.794;entryY=0.071;entryDx=0;entryDy=0;entryPerimeter=0;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1226" y="241.67" as="sourcePoint" />
+            <mxPoint x="1202" y="241.67" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-113" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.794;entryY=0.071;entryDx=0;entryDy=0;entryPerimeter=0;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1226" y="272.67" as="sourcePoint" />
+            <mxPoint x="1202" y="272.67" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <object label="XD" id="sensor-xmeas-31">
+          <mxCell parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" vertex="1">
+            <mxGeometry height="24" width="24" x="1226" y="514" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="XE" id="sensor-xmeas-32">
+          <mxCell parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" vertex="1">
+            <mxGeometry height="24" width="24" x="1226" y="544" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="XF" id="sensor-xmeas-33">
+          <mxCell parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" vertex="1">
+            <mxGeometry height="24" width="24" x="1226" y="575" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="XG" id="sensor-xmeas-34">
+          <mxCell parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" vertex="1">
+            <mxGeometry height="24" width="24" x="1226" y="604" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="XH" id="sensor-xmeas-35">
+          <mxCell parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" vertex="1">
+            <mxGeometry height="24" width="24" x="1226" y="635" as="geometry" />
+          </mxCell>
+        </object>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-123" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.794;entryY=0.071;entryDx=0;entryDy=0;entryPerimeter=0;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1226" y="525.88" as="sourcePoint" />
+            <mxPoint x="1202" y="525.88" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-124" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.794;entryY=0.071;entryDx=0;entryDy=0;entryPerimeter=0;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1226" y="555.88" as="sourcePoint" />
+            <mxPoint x="1202" y="555.88" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-125" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.794;entryY=0.071;entryDx=0;entryDy=0;entryPerimeter=0;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1226" y="586.88" as="sourcePoint" />
+            <mxPoint x="1202" y="586.88" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-126" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.794;entryY=0.071;entryDx=0;entryDy=0;entryPerimeter=0;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1226" y="615.88" as="sourcePoint" />
+            <mxPoint x="1202" y="615.88" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-127" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.794;entryY=0.071;entryDx=0;entryDy=0;entryPerimeter=0;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1226" y="646.88" as="sourcePoint" />
+            <mxPoint x="1202" y="646.88" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <object label="XA" id="sensor-xmeas-36">
+          <mxCell parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" vertex="1">
+            <mxGeometry height="24" width="24" x="109" y="10" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="XB" id="sensor-xmeas-37">
+          <mxCell parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" vertex="1">
+            <mxGeometry height="24" width="24" x="109" y="41" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="XC" id="sensor-xmeas-38">
+          <mxCell parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" vertex="1">
+            <mxGeometry height="24" width="24" x="109" y="70" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="XD" id="sensor-xmeas-39">
+          <mxCell parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" vertex="1">
+            <mxGeometry height="24" width="24" x="109" y="101" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="XE" id="sensor-xmeas-40">
+          <mxCell parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" vertex="1">
+            <mxGeometry height="24" width="24" x="109" y="131" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="XF" id="sensor-xmeas-41">
+          <mxCell parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" vertex="1">
+            <mxGeometry height="24" width="24" x="109" y="162" as="geometry" />
+          </mxCell>
+        </object>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-144" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.794;entryY=0.071;entryDx=0;entryDy=0;entryPerimeter=0;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="158" y="173.88" as="sourcePoint" />
+            <mxPoint x="134" y="173.88" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-145" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.794;entryY=0.071;entryDx=0;entryDy=0;entryPerimeter=0;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="158" y="142.88" as="sourcePoint" />
+            <mxPoint x="134" y="142.88" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-146" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.794;entryY=0.071;entryDx=0;entryDy=0;entryPerimeter=0;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="158" y="112.88" as="sourcePoint" />
+            <mxPoint x="134" y="112.88" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-147" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.794;entryY=0.071;entryDx=0;entryDy=0;entryPerimeter=0;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="158" y="81.88" as="sourcePoint" />
+            <mxPoint x="134" y="81.88" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-148" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.794;entryY=0.071;entryDx=0;entryDy=0;entryPerimeter=0;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="158" y="52.88" as="sourcePoint" />
+            <mxPoint x="134" y="52.88" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-149" edge="1" parent="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.794;entryY=0.071;entryDx=0;entryDy=0;entryPerimeter=0;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="157" y="21.880000000000003" as="sourcePoint" />
+            <mxPoint x="133" y="21.880000000000003" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <object label="" id="sensor-xmeas-04">
+          <mxCell connectable="0" parent="1" style="group" vertex="1">
+            <mxGeometry height="49" width="24" x="48" y="473" as="geometry" />
+          </mxCell>
+        </object>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-150" parent="sensor-xmeas-04" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" value="FI" vertex="1">
+          <mxGeometry height="24" width="24" as="geometry" />
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-151" edge="1" parent="sensor-xmeas-04" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;" target="DX2hcvjyZLIlzarhZcH8-150">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="12" y="49" as="sourcePoint" />
+            <mxPoint x="74" y="74" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sensor-xmeas-01" connectable="0" parent="1" style="group" value="" vertex="1">
+          <mxGeometry height="49" width="24" x="49" y="251" as="geometry" />
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-154" parent="sensor-xmeas-01" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" value="FI" vertex="1">
+          <mxGeometry height="24" width="24" as="geometry" />
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-155" edge="1" parent="sensor-xmeas-01" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="11.879999999999995" y="49" as="sourcePoint" />
+            <mxPoint x="11.879999999999995" y="24" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <object label="" id="sensor-xmeas-02">
+          <mxCell connectable="0" parent="1" style="group" vertex="1">
+            <mxGeometry height="49" width="24" x="49" y="307" as="geometry" />
+          </mxCell>
+        </object>
+        <object label="FI" id="DX2hcvjyZLIlzarhZdwdH8-160">
+          <mxCell parent="sensor-xmeas-02" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" vertex="1">
+            <mxGeometry height="24" width="24" as="geometry" />
+          </mxCell>
+        </object>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-160" edge="1" parent="sensor-xmeas-02" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="11.879999999999995" y="49" as="sourcePoint" />
+            <mxPoint x="11.879999999999995" y="24" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <object label="" id="sensor-xmeas-03">
+          <mxCell connectable="0" parent="1" style="group" vertex="1">
+            <mxGeometry height="49" width="24" x="49" y="365" as="geometry" />
+          </mxCell>
+        </object>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-162" parent="sensor-xmeas-03" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" value="FI" vertex="1">
+          <mxGeometry height="24" width="24" as="geometry" />
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-163" edge="1" parent="sensor-xmeas-03" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="11.879999999999995" y="49" as="sourcePoint" />
+            <mxPoint x="11.879999999999995" y="24" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <object label="" id="sensor-xmeas-06">
+          <mxCell connectable="0" parent="1" style="group" vertex="1">
+            <mxGeometry height="49" width="24" x="306" y="364" as="geometry" />
+          </mxCell>
+        </object>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-165" parent="sensor-xmeas-06" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" value="FI" vertex="1">
+          <mxGeometry height="24" width="24" as="geometry" />
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-166" edge="1" parent="sensor-xmeas-06" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="11.879999999999995" y="49" as="sourcePoint" />
+            <mxPoint x="11.879999999999995" y="24" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <object label="" id="sensor-xmeas-09">
+          <mxCell connectable="0" parent="1" style="group" vertex="1">
+            <mxGeometry height="49" width="24" x="466" y="461" as="geometry" />
+          </mxCell>
+        </object>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-168" parent="sensor-xmeas-09" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" value="TI" vertex="1">
+          <mxGeometry height="24" width="24" y="25" as="geometry" />
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-169" edge="1" parent="sensor-xmeas-09" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="11.879999999999995" y="25" as="sourcePoint" />
+            <mxPoint x="11.879999999999995" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <object label="" id="sensor-xmeas-21">
+          <mxCell connectable="0" parent="1" style="group" vertex="1">
+            <mxGeometry height="49" width="24" x="547" y="330" as="geometry" />
+          </mxCell>
+        </object>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-181" parent="sensor-xmeas-21" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" value="TI" vertex="1">
+          <mxGeometry height="24" width="24" as="geometry" />
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-182" edge="1" parent="sensor-xmeas-21" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="11.879999999999995" y="49" as="sourcePoint" />
+            <mxPoint x="11.879999999999995" y="24" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <object label="" id="sensor-xmeas-22">
+          <mxCell connectable="0" parent="1" style="group" vertex="1">
+            <mxGeometry height="49" width="24" x="625" y="178" as="geometry" />
+          </mxCell>
+        </object>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-184" parent="sensor-xmeas-22" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" value="TI" vertex="1">
+          <mxGeometry height="24" width="24" y="9" as="geometry" />
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-185" edge="1" parent="sensor-xmeas-22" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="DX2hcvjyZLIlzarhZcH8-184">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="11.879999999999995" y="49" as="sourcePoint" />
+            <mxPoint x="11.879999999999995" y="24" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <object label="" id="sensor-xmeas-14">
+          <mxCell connectable="0" parent="1" style="group" vertex="1">
+            <mxGeometry height="49" width="24" x="821" y="-102" as="geometry" />
+          </mxCell>
+        </object>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-187" parent="sensor-xmeas-14" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" value="FI" vertex="1">
+          <mxGeometry height="24" width="24" as="geometry" />
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-188" edge="1" parent="sensor-xmeas-14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="11.879999999999995" y="49" as="sourcePoint" />
+            <mxPoint x="11.879999999999995" y="24" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <object label="JI" id="sensor-xmeas-20">
+          <mxCell parent="1" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;container=0;" vertex="1">
+            <mxGeometry height="24" width="24" x="915.5" y="-126" as="geometry" />
+          </mxCell>
+        </object>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-191" edge="1" parent="1" source="unit-compressor-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;exitX=0.43;exitY=0;exitDx=0;exitDy=0;exitPerimeter=0;" target="sensor-xmeas-20">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="838" y="57" as="sourcePoint" />
+            <mxPoint x="837.88" y="32" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <object label="" id="sensor-xmeas-07">
+          <mxCell connectable="0" parent="1" style="group" vertex="1">
+            <mxGeometry height="24" width="46" x="471" y="196" as="geometry" />
+          </mxCell>
+        </object>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-174" parent="sensor-xmeas-07" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" value="PI" vertex="1">
+          <mxGeometry height="24" width="24" x="22" as="geometry" />
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-175" edge="1" parent="sensor-xmeas-07" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="22" y="11.879999999999995" as="sourcePoint" />
+            <mxPoint y="12.129999999999995" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <object label="" id="sensor-xmeas-16">
+          <mxCell connectable="0" parent="1" style="group" vertex="1">
+            <mxGeometry height="24" width="46" x="760" y="269" as="geometry" />
+          </mxCell>
+        </object>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-198" parent="sensor-xmeas-16" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" value="PI" vertex="1">
+          <mxGeometry height="24" width="24" x="22" as="geometry" />
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-199" edge="1" parent="sensor-xmeas-16" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="22" y="11.879999999999995" as="sourcePoint" />
+            <mxPoint y="12.129999999999995" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <object label="" id="sensor-xmeas-18">
+          <mxCell connectable="0" parent="1" style="group" vertex="1">
+            <mxGeometry height="24" width="46" x="804" y="428" as="geometry" />
+          </mxCell>
+        </object>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-201" parent="sensor-xmeas-18" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" value="TI" vertex="1">
+          <mxGeometry height="24" width="24" x="22" as="geometry" />
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-202" edge="1" parent="sensor-xmeas-18" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="22" y="11.879999999999995" as="sourcePoint" />
+            <mxPoint y="12.129999999999995" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <object label="" id="sensor-xmeas-08">
+          <mxCell connectable="0" parent="1" style="group" vertex="1">
+            <mxGeometry height="24" width="46" x="306" y="260.75" as="geometry" />
+          </mxCell>
+        </object>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-171" parent="sensor-xmeas-08" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" value="LI" vertex="1">
+          <mxGeometry height="24" width="24" as="geometry" />
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-173" edge="1" parent="sensor-xmeas-08" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;" target="DX2hcvjyZLIlzarhZcH8-171">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="46" y="12" as="sourcePoint" />
+            <mxPoint x="38.89999999999998" y="-29.25" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <object label="" id="sensor-xmeas-15">
+          <mxCell connectable="0" parent="1" style="group" vertex="1">
+            <mxGeometry height="24" width="46" x="672" y="558" as="geometry" />
+          </mxCell>
+        </object>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-206" parent="sensor-xmeas-15" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" value="LI" vertex="1">
+          <mxGeometry height="24" width="24" as="geometry" />
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-207" edge="1" parent="sensor-xmeas-15" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;" target="DX2hcvjyZLIlzarhZcH8-206">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="46" y="12" as="sourcePoint" />
+            <mxPoint x="38.89999999999998" y="-29.25" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <object label="" id="sensor-xmeas-05">
+          <mxCell connectable="0" parent="1" style="group" vertex="1">
+            <mxGeometry height="49" width="24" x="935" y="290.25" as="geometry" />
+          </mxCell>
+        </object>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-209" parent="sensor-xmeas-05" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" value="FI" vertex="1">
+          <mxGeometry height="24" width="24" y="9" as="geometry" />
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-210" edge="1" parent="sensor-xmeas-05" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" target="DX2hcvjyZLIlzarhZcH8-209">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="11.879999999999995" y="49" as="sourcePoint" />
+            <mxPoint x="11.879999999999995" y="24" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <object label="" id="sensor-xmeas-11">
+          <mxCell connectable="0" parent="1" style="group" vertex="1">
+            <mxGeometry height="24" width="46" x="915" y="215" as="geometry" />
+          </mxCell>
+        </object>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-212" parent="sensor-xmeas-11" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" value="TI" vertex="1">
+          <mxGeometry height="24" width="24" as="geometry" />
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-213" edge="1" parent="sensor-xmeas-11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;" target="DX2hcvjyZLIlzarhZcH8-212">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="46" y="12" as="sourcePoint" />
+            <mxPoint x="38.89999999999998" y="-29.25" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <object label="" id="sensor-xmeas-12">
+          <mxCell connectable="0" parent="1" style="group" vertex="1">
+            <mxGeometry height="49" width="24" x="958" y="6" as="geometry" />
+          </mxCell>
+        </object>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-215" parent="sensor-xmeas-12" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" value="LI" vertex="1">
+          <mxGeometry height="24" width="24" as="geometry" />
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-216" edge="1" parent="sensor-xmeas-12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="11.879999999999995" y="49" as="sourcePoint" />
+            <mxPoint x="11.879999999999995" y="24" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <object label="" id="sensor-xmeas-13">
+          <mxCell connectable="0" parent="1" style="group" vertex="1">
+            <mxGeometry height="24" width="46" x="995" y="17" as="geometry" />
+          </mxCell>
+        </object>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-218" parent="sensor-xmeas-13" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" value="PI" vertex="1">
+          <mxGeometry height="24" width="24" x="22" as="geometry" />
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-219" edge="1" parent="sensor-xmeas-13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="22" y="11.879999999999995" as="sourcePoint" />
+            <mxPoint y="12.129999999999995" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <object label="" id="sensor-xmeas-10">
+          <mxCell connectable="0" parent="1" style="group" vertex="1">
+            <mxGeometry height="49" width="24" x="1015" y="-62" as="geometry" />
+          </mxCell>
+        </object>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-221" parent="sensor-xmeas-10" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" value="FI" vertex="1">
+          <mxGeometry height="24" width="24" as="geometry" />
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-222" edge="1" parent="sensor-xmeas-10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="11.879999999999995" y="49" as="sourcePoint" />
+            <mxPoint x="11.879999999999995" y="24" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <object label="" id="sensor-xmeas-17">
+          <mxCell connectable="0" parent="1" style="group" vertex="1">
+            <mxGeometry height="49" width="24" x="892" y="703" as="geometry" />
+          </mxCell>
+        </object>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-224" parent="sensor-xmeas-17" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" value="FI" vertex="1">
+          <mxGeometry height="24" width="24" as="geometry" />
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-225" edge="1" parent="sensor-xmeas-17" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="11.879999999999995" y="49" as="sourcePoint" />
+            <mxPoint x="11.879999999999995" y="24" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <object label="" id="sensor-xmeas-19">
+          <mxCell connectable="0" parent="1" style="group" vertex="1">
+            <mxGeometry height="49" width="24" x="957" y="464.75" as="geometry" />
+          </mxCell>
+        </object>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-227" parent="sensor-xmeas-19" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" value="FI" vertex="1">
+          <mxGeometry height="24" width="24" as="geometry" />
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-228" edge="1" parent="sensor-xmeas-19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="11.879999999999995" y="49" as="sourcePoint" />
+            <mxPoint x="11.879999999999995" y="24" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <object label="" id="actuator-xmv-12">
+          <mxCell connectable="0" parent="1" style="group" vertex="1">
+            <mxGeometry height="329" width="58" x="394" y="111" as="geometry" />
+          </mxCell>
+        </object>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-59" parent="actuator-xmv-12" style="dashed=0;outlineConnect=0;align=center;html=1;shape=mxgraph.pid.engines.electric_motor;fontSize=21;strokeColor=default;verticalAlign=middle;fontFamily=Helvetica;fontColor=default;fillColor=default;container=0;" value="M" vertex="1">
+          <mxGeometry height="25" width="24" x="17" y="49" as="geometry" />
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-178" parent="actuator-xmv-12" style="ellipse;whiteSpace=wrap;html=1;aspect=fixed;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" value="SC" vertex="1">
+          <mxGeometry height="24" width="24" x="17" as="geometry" />
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-179" edge="1" parent="actuator-xmv-12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=none;endFill=0;dashed=1;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="28.879999999999995" y="49" as="sourcePoint" />
+            <mxPoint x="28.879999999999995" y="24" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-61" edge="1" parent="actuator-xmv-12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;exitPerimeter=0;fontFamily=Helvetica;fontSize=12;fontColor=default;endArrow=ERone;endFill=0;">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="29" y="80" as="sourcePoint" />
+            <mxPoint x="29" y="329" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="DX2hcvjyZLIlzarhZcH8-67" parent="actuator-xmv-12" style="verticalLabelPosition=bottom;outlineConnect=0;align=center;dashed=0;html=1;verticalAlign=top;shape=mxgraph.pid.misc.fan_2;strokeColor=default;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" value="" vertex="1">
+          <mxGeometry height="8.01609657947686" width="58" y="320.9839034205231" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
