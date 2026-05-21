@@ -2,8 +2,14 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "TEP Diagram Ontology",
   "description": "Complete mapping of XMV, XMEAS, streams, vessels, and analyzers for SVG semantic structure",
-  "version": "1.0.0",
-  "date": "2026-05-19",
+  "version": "1.1.0",
+  "date": "2026-05-21",
+
+  "svg_addressing": {
+    "attribute": "data-cell-id",
+    "selector": "[data-cell-id='<id>']",
+    "note": "O SVG é exportado pelo draw.io. O atributo semântico é data-cell-id, não id. Ver tep-svg-mapping.json para a tabela completa de IDs."
+  },
 
   "vessels": [
     {
@@ -68,6 +74,7 @@
     {
       "id": "V",
       "name": "Compressor/Vapor Loop",
+      "svg_cell_ids": ["unit-compressor-1", "unit-compressor-2", "unit-compressor-3"],
       "type": "no-holdup",
       "description": "Fase vapor que retorna para o reator (sem acumulação de holdup)",
       "measurements": {
@@ -394,7 +401,7 @@
 
   "analyzers": [
     {
-      "id": "analyzer-reactor-feed-composition",
+      "id": "analyzer-06-feed",
       "location": "stream-reactor-feed",
       "stream_id": 6,
       "measurements": [23, 24, 25, 26, 27, 28],
@@ -405,7 +412,7 @@
       "description": "Análise de composição da alimentação ao reator (stream 6, XMEAS 23-28, 0.1h = 360s)"
     },
     {
-      "id": "analyzer-purge-composition",
+      "id": "analyzer-09-purge",
       "location": "stream-purge",
       "stream_id": 9,
       "measurements": [29, 30, 31, 32, 33, 34, 35, 36],
@@ -416,7 +423,7 @@
       "description": "Análise de composição do gás de purga (stream 9, XMEAS 29-36, 0.1h = 360s)"
     },
     {
-      "id": "analyzer-product-composition",
+      "id": "analyzer-11-product",
       "location": "stream-product-bottoms",
       "stream_id": 11,
       "measurements": [37, 38, 39, 40, 41],
