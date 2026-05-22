@@ -1,4 +1,4 @@
-<mxfile host="Electron" agent="Claude Code">
+<mxfile host="Electron" agent="Claude Code" pages="4">
   <diagram name="TEP-PID" id="tep-main-diagram">
     <mxGraphModel dx="1574" dy="1091" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="1654" pageHeight="1169" math="0" shadow="0">
       <root>
@@ -1021,6 +1021,39 @@
         </mxCell>
         <mxCell id="DX2hcvjyZLIlzarhZcH8-67" parent="actuator-xmv-12" style="verticalLabelPosition=bottom;outlineConnect=0;align=center;dashed=0;html=1;verticalAlign=top;shape=mxgraph.pid.misc.fan_2;strokeColor=default;fontFamily=Helvetica;fontSize=12;fontColor=default;fillColor=default;" value="" vertex="1">
           <mxGeometry height="8.01609657947686" width="58" y="320.9839034205231" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="BAaG58yBNcxX7TbWr-08" name="--sev-1">
+    <mxGraphModel dx="978" dy="576" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="O-l2W2faSFtigSE0zYoY-1" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#FF0000;fontSize=50;fontStyle=1;strokeWidth=5;" value="1" vertex="1">
+          <mxGeometry height="120" width="120" x="140" y="280" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="PZWfqzgbVn9Iyo6awI4k" name="--sev-2">
+    <mxGraphModel dx="978" dy="576" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="XmSR-tq44a_Q3B4Rrum9-1" parent="1" style="verticalLabelPosition=middle;verticalAlign=middle;html=1;shape=mxgraph.basic.acute_triangle;dx=0.5;labelPosition=center;align=center;fontSize=50;fillColor=#FFFF00;strokeWidth=5;fontStyle=1" value="2" vertex="1">
+          <mxGeometry height="120" width="140" x="120" y="610" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="WKLJOAeguvoNpG_ARqUr" name="--sev-3">
+    <mxGraphModel dx="685" dy="403" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="FevTOv9kxwzOKDv35JN5-1" parent="1" style="verticalLabelPosition=middle;verticalAlign=middle;html=1;shape=mxgraph.basic.acute_triangle;dx=0.5;labelPosition=center;align=center;fontSize=50;fillColor=#FF9955;direction=west;fontStyle=1;strokeWidth=5;" value="3" vertex="1">
+          <mxGeometry height="120" width="140" x="110" y="680" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
