@@ -1,8 +1,12 @@
 # Entrega 2 — Painel Analítico com Persistência de Séries Temporais
 
-**Escopo:** `tep-plant` (ingestão) + camada de storage (nova) + `tep-ihm` (display)  
+> **Status: IMPLEMENTADO** — issue #54 fechada em 2026-05-25.  
+> Arquivos entregues: `src/persistence.py`, `static/analytics.html`, `static/analytics.js`, rotas em `src/server.py`.  
+> Guia de uso: `docs/forDummies/nota_analytics_panel.md`
+
+**Escopo:** `tep-ihm` (storage + display)  
 **Complexidade:** Alta — envolve decisão de persistência, nova dependência (ECharts), e possivelmente novo serviço  
-**Pré-requisito:** Decisão de arquitetura de storage (seção 2)
+**Pré-requisito:** Decisão de arquitetura de storage (seção 2) ✓
 
 ---
 

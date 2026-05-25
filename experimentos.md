@@ -11,6 +11,14 @@
 F
 ---
 
+## Issues entregues recentemente
+
+| Issue | Título | Entregue |
+| ----- | ------ | -------- |
+| [#54](https://github.com/Green-Cinnamon-Labs/spec-tennessee-eastman/issues/54) | feat(tep-ihm): persistência SQLite + painel Analytics (ECharts) | 2026-05-25 |
+
+---
+
 ## Issues abertas — backlog técnico
 
 | Issue                                                                          | Título                                                        |
