@@ -15,6 +15,7 @@ F
 
 | Issue | Título | Entregue |
 | ----- | ------ | -------- |
+| [#51](https://github.com/Green-Cinnamon-Labs/spec-tennessee-eastman/issues/51) | Standardize dashboard UI to ISA-101 — SVGControlChart, tooltip, barSide, normalização por série | 2026-05-26 |
 | [#54](https://github.com/Green-Cinnamon-Labs/spec-tennessee-eastman/issues/54) | feat(tep-ihm): persistência SQLite + painel Analytics (ECharts) | 2026-05-25 |
 
 ---
