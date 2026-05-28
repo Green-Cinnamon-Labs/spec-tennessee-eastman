@@ -15,8 +15,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
 
-# ── default CSV path (relative to this file → repo root) ──────────────────────
-_DEFAULT_CSV = Path(__file__).parent.parent.parent / "tennessee-eastman-service" / "simulation_log.csv"
+# ── default paths ─────────────────────────────────────────────────────────────
+_SIMULATIONS_DIR = Path(__file__).parent.parent / "docs" / "simulations"
+_DEFAULT_CSV     = _SIMULATIONS_DIR / "simulation_log.csv"
+_PLOTS_DIR       = _SIMULATIONS_DIR / "plots"
 
 # ── ISD / alarm thresholds ────────────────────────────────────────────────────
 ISD = {
@@ -230,7 +232,8 @@ def plot(csv_path: Path, ramp_h: float | None = None) -> None:
     for ax in flat_axes[(nrows - 1) * ncols:]:
         ax.set_xlabel("Simulated time (h)", fontsize=8)
 
-    out = csv_path.with_suffix(".png")
+    _PLOTS_DIR.mkdir(parents=True, exist_ok=True)
+    out = _PLOTS_DIR / (csv_path.stem + ".png")
     fig.savefig(out, dpi=150)
     print(f"Saved → {out}")
     plt.show()

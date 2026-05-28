@@ -102,11 +102,24 @@ Duração total: ~25h de tempo simulado (~15 min de relógio a 100×). Snapshot 
 
 ### Resultado
 
-A ser preenchido após execução.
+**Arquivo:** `docs/simulations/simulation_log_14.0.csv` — **Plot:** `docs/simulations/plots/simulation_log_14.0.png`
+
+A planta não atingiu novo steady-state. Entrou em colapso térmico durante o cold-start antes de o IDV(4) produzir efeito observável. Comportamento em t = 0,048 → 0,192 h:
+
+- **XMEAS(9) Reactor T:** caiu continuamente de ~118°C → ~83°C. Nunca se recuperou.
+- **XMEAS(7) Reactor P:** subiu monotonicamente de ~2700 → ~2950 kPa, chegando próximo ao ISD (3000 kPa).
+- **XMV(6) Purge Valve:** controlador abriu a purga de ~39% → ~65%, mas não conteve a pressão.
+- **ISD:** ocorreu em t ≈ 0,185 h por `deriv_norm → 0` com alarme de pressão ativo. O solver colapsou antes de cruzar 3000 kPa.
+
+**Mecanismo:** temperatura baixa → cinética de Arrhenius lenta (rr[0] cai ~33× entre 120°C e 95°C, ~200× a 80°C) → reagentes A/C/D/E acumulam no vapor → pressão sobe. Purga age sobre o sintoma, não sobre a causa. Loop de colapso irreversível.
 
 ### Conclusão
 
-A ser preenchido após execução.
+O experimento falhou por instabilidade de cold-start; a hipótese original (resposta ao IDV(4)) não pôde ser testada.
+
+**Suspeita principal:** a implementação **quasi-static** de `twr` ([model.rs L657](../tep-plant/tennessee-eastman-service/core/src/dynamics/tep/model.rs)) substitui a equação diferencial original por um balanço térmico instantâneo. No modelo de Downs & Vogel, `twr` tem inércia própria que amorteça perturbações; no quasi-static, qualquer variação de `tcwr` ou `fcwr` se propaga imediatamente para `qur`, podendo amplificar instabilidades no cold-start em vez de amortecê-las. Precisamos entender se essa simplificação tornou a planta marginalmente instável nessa fase.
+
+**Próximo passo:** reproduzir o cold-start sem IDV(4), do mesmo snapshot, e verificar se a planta atinge steady-state. Se colapsar igualmente, confirma instabilidade estrutural do quasi-static.
 
 ---
 
