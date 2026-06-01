@@ -10,7 +10,7 @@ O experimento mais recente aparece primeiro.
 
 ## Experimento 15 — IDV(1): Step na razão A/C do feed (corrente 4)
 
-**Data:** 2026-06-01 — **Planejado**
+**Data:** 2026-06-01 — **Concluído**
 
 ### Observação
 
@@ -20,18 +20,21 @@ IDV(1) altera a **razão A/C no feed combinado (corrente 4)** com um degrau de p
 
 ### Hipótese
 
-Mais A na corrente 4 → mais reagente disponível para as reações exotérmicas (A+C+D→G, A+C+E→H) → temperatura do reator (XMEAS(9)) sobe → pressão (XMEAS(7)) sobe → controlador de pressão abre purge (XMV(6)).
+IDV(1) aplica um degrau de −0.03 mol frac em A (0.485 → 0.455, −6%) e +0.03 em C (0.510 → 0.540) na corrente 4, conforme `XST(1,4) = TESUB8(1,TIME) - IDV(1)*0.03`.
 
-Ao contrário de Exp 14, **um novo SS estável é esperado**: IDV(1) apenas desloca o ponto de operação, não colapsa o sistema.
+**Mecanismo esperado:** A é reagente limitante das duas reações principais (A+C+D→G e A+C+E→H). Menos A disponível → taxa de reação cai → menos gás (A, C, D, E em fase vapor) é consumido e convertido em líquido (G, H) → inventário gasoso do reator tende a **acumular** → **pressão sobe**. O aumento de C no feed parcialmente compensa, mas A aparece em ambas as reações e o efeito líquido é desaceleração.
+
+Do ponto de vista térmico, menos reação significa menos calor liberado — a temperatura do reator deve **cair levemente** ou permanecer próxima ao baseline, dependendo de quanto o balanço térmico é afetado.
+
+O controlador P de pressão responderá abrindo a purge (XMV(6)) para tentar compensar o acúmulo. Se a taxa de remoção pela purge for suficiente para igualar o acúmulo, um **novo SS estável** é atingido com pressão levemente acima do baseline e temperatura levemente abaixo. Se não for suficiente, a pressão continua subindo até o ISD.
 
 | Variável           | Baseline (Exp 13) | Esperado após IDV(1) |
 | ------------------ | ----------------- | -------------------- |
-| XMEAS(9) Reactor T | ~120 °C           | levemente acima      |
-| XMEAS(7) Reactor P | ~2699 kPa         | levemente acima      |
+| XMEAS(23) A mol%   | ~32%              | ↓ (menos A no feed)  |
+| XMEAS(25) C mol%   | ~26%              | ↑ (mais C no feed)   |
+| XMEAS(9) Reactor T | ~120 °C           | levemente abaixo     |
+| XMEAS(7) Reactor P | ~2699 kPa         | acima — SS ou ISD?   |
 | XMV(6) Purge       | ~39 %             | mais aberto          |
-| XMEAS(10) Purge F  | ~0.4 kscmh        | maior                |
-
-Sep e Stripper Levels devem permanecer controlados pelos P-controllers.
 
 ### Intervenção
 
@@ -64,11 +67,30 @@ Debugger config: "IHM: planta local (gRPC + CSV)"
 
 ### Resultado
 
-_Pendente._
+**Arquivo:** `docs/simulations/simulation_log_15.0.csv` — **Plot:** `docs/simulations/plots/simulation_log_15.0.png`
+
+A planta **não atingiu novo SS**. Colapsou por sobrepressão em t ≈ 2.5h simuladas. Comportamento observado:
+
+- **XMEAS(23) A mol%:** caiu de ~32% → ~26% a partir de t ≈ 0.5h (degrau de composição visível e limpo).
+- **XMEAS(25) C mol%:** subiu simetricamente de ~26% → ~32% no mesmo instante.
+- **XMEAS(7) Reactor P:** após o degrau, subiu monotonicamente de ~2700 → ~2960 kPa. Curva acelerante, sem inflexão de retorno. ISD atingido em t ≈ 2.5h.
+- **XMEAS(9) Reactor T:** permaneceu completamente flat em ~120°C durante toda a run. Sem resposta térmica visível ao distúrbio.
+- **XMV(6) Purge Valve:** abriu de ~39% → ~62%. O controlador respondeu ao aumento de pressão, mas não foi suficiente para conter o acúmulo.
+- **XMEAS(10) Purge Flow:** visualmente próximo de zero na escala do gráfico (eixo compartilhado com XMV%), mas em valor real ~0.4 kscmh — insuficiente dado o volume de acúmulo.
+
+**Mecanismo identificado:** IDV(1) reduziu A de 0.485 → 0.455 mol frac (−6%) e aumentou C de 0.510 → 0.540 (+6%) na corrente 4. Menos A disponível → reações A+C+D→G(liq) e A+C+E→H(liq) mais lentas → **menos gás consumido pelas reações** → inventário gasoso acumula → pressão sobe. A temperatura não cai porque a redução de calor gerado é compensada pela redução de calor absorvido na formação dos produtos — o balanço térmico permanece, mas o balanço de massa não fecha.
 
 ### Conclusão
 
-_Pendente._
+**Hipótese refutada.** IDV(1) não desloca a planta para um novo SS estável — causa colapso por sobrepressão em ~2.5h simuladas.
+
+O mecanismo dominante é **balanço de massa, não térmico**: A é reagente limitante das reações que consomem gás (fase vapor → fase líquida). Menos A → reações mais lentas → menos gás convertido em líquido → acúmulo de inventário gasoso → pressão monotonicamente crescente. O controlador P de pressão (purge via XMV(6)) abre corretamente mas a taxa de remoção pela purga não acompanha a taxa de acúmulo — não há equilíbrio possível com os 3 controladores atuais sob IDV(1).
+
+A temperatura flat é uma **armadilha diagnóstica**: sem sinal térmico, o operador não tem aviso precoce — a pressão é o único indicador e já está em trajetória de colapso quando se torna observável.
+
+**Implicação para o supervisor:** IDV(1) exige ação composicional (ajuste de setpoint de feed ou razão A/C), não apenas pressão. Um controlador P de pressão via purge é insuficiente para rejeitar este distúrbio. Isso motiva a lógica supervisória do operator (issue [#44]) — detectar a tendência de pressão crescente e agir preventivamente antes do ISD.
+
+**Próximo passo:** Exp 16 — IDV(1) com supervisor ativo, verificar se a lógica do operator consegue detectar e reagir antes do colapso.
 
 ---
 

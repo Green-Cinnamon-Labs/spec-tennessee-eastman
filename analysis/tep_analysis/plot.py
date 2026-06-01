@@ -14,9 +14,10 @@ from pathlib import Path
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.ticker as ticker
+from scipy.signal import savgol_filter
 
 # ── default paths ─────────────────────────────────────────────────────────────
-_SIMULATIONS_DIR = Path(__file__).parent.parent / "docs" / "simulations"
+_SIMULATIONS_DIR = Path(__file__).parent.parent.parent / "docs" / "simulations"
 _DEFAULT_CSV     = _SIMULATIONS_DIR / "simulation_log.csv"
 _PLOTS_DIR       = _SIMULATIONS_DIR / "plots"
 
@@ -69,6 +70,15 @@ PANELS = [
             ("XMV(4)", "A&C Feed (XMV4)", "#f39c12"),
         ],
         (0, 100),
+    ),
+    (
+        "Reactor A & C Composition  (XMEAS(23,25))",
+        "mol%",
+        [
+            ("XMEAS(23)", "A mol%  (XMEAS23)", "#e74c3c"),
+            ("XMEAS(25)", "C mol%  (XMEAS25)", "#2ecc71"),
+        ],
+        (None, None),
     ),
     (
         "Recycle Flow",
@@ -164,12 +174,31 @@ def _normalise_columns(df: pd.DataFrame) -> pd.DataFrame:
     return df.rename(columns=rename) if rename else df
 
 
-def plot(csv_path: Path, ramp_h: float | None = None) -> None:
-    print(f"Loading {csv_path} …")
+def _smooth(series: pd.Series, window: int) -> pd.Series:
+    """Savitzky-Golay com fallback para rolling mean se scipy não disponível."""
+    n = len(series)
+    w = min(window | 1, n if n % 2 == 1 else n - 1)  # garante ímpar e ≤ n
+    if w < 3:
+        return series
+    try:
+        return pd.Series(savgol_filter(series.values, window_length=w, polyorder=2),
+                         index=series.index)
+    except Exception:
+        return series.rolling(window=w, center=True, min_periods=1).mean()
+
+
+def plot(csv_path: Path, ramp_h: float | None = None, smooth: int = 0) -> None:
+    print(f"Loading {csv_path} ...")
     df = pd.read_csv(csv_path)
     df = _normalise_columns(df)
-    print(f"  {len(df)} rows  |  t = {df['t_h'].min():.4f} … {df['t_h'].max():.4f} h")
+    print(f"  {len(df)} rows  |  t = {df['t_h'].min():.4f} ... {df['t_h'].max():.4f} h")
     print(f"  columns: {list(df.columns)}")
+
+    # ── suavização opcional (Savitzky-Golay) ──────────────────────────────────
+    if smooth > 2:
+        for col in df.columns:
+            if col != "t_h":
+                df[col] = _smooth(df[col], smooth)
 
     # ── derived ODE state columns (present only when runtime logs YY) ─────────
     yy_ucvr = [f"YY[{i}]" for i in range(8)]
@@ -224,6 +253,32 @@ def plot(csv_path: Path, ramp_h: float | None = None) -> None:
         if ramp_h is not None:
             _add_ramp_markers(ax, ramp_h)
 
+    # ── Painel normalizado: variáveis com unidades mistas num eixo 0–1 ─────────
+    # Candidatos: pressão, temperatura, composição A e C — se presentes no CSV
+    norm_candidates = [
+        ("XMEAS(7)",  "Pressão (kPa)",   "#e05c5c", 2400, 3200),
+        ("XMEAS(9)",  "Temperatura (°C)", "#e08a3c",   80,  175),
+        ("XMEAS(23)", "A mol%",           "#e74c3c",   20,   40),
+        ("XMEAS(25)", "C mol%",           "#2ecc71",   20,   40),
+    ]
+    norm_series = [(col, lbl, clr, lo, hi)
+                   for col, lbl, clr, lo, hi in norm_candidates
+                   if col in df.columns]
+    if len(norm_series) >= 2 and n_panels < len(flat_axes):
+        ax_n = flat_axes[n_panels]
+        ax_n.set_visible(True)
+        for col, lbl, clr, lo, hi in norm_series:
+            norm_vals = (df[col] - lo) / (hi - lo)
+            ax_n.plot(t, norm_vals, label=lbl, color=clr, linewidth=1.0)
+        ax_n.set_title("Comparacao normalizada (0=min, 1=max de escala)", fontsize=9, fontweight="bold")
+        ax_n.set_ylabel("[-]", fontsize=8)
+        ax_n.set_ylim(-0.05, 1.05)
+        ax_n.tick_params(labelsize=7)
+        ax_n.xaxis.set_major_formatter(ticker.FormatStrFormatter("%.3f"))
+        ax_n.legend(fontsize=7, loc="upper right")
+        ax_n.grid(True, linewidth=0.4, alpha=0.5)
+        n_panels += 1
+
     # hide any spare axes
     for idx in range(n_panels, len(flat_axes)):
         flat_axes[idx].set_visible(False)
@@ -235,7 +290,7 @@ def plot(csv_path: Path, ramp_h: float | None = None) -> None:
     _PLOTS_DIR.mkdir(parents=True, exist_ok=True)
     out = _PLOTS_DIR / (csv_path.stem + ".png")
     fig.savefig(out, dpi=150)
-    print(f"Saved → {out}")
+    print(f"Saved -> {out}")
     plt.show()
 
 
@@ -254,13 +309,20 @@ def main() -> None:
         metavar="HOURS",
         help="Cold-start ramp duration in simulated hours; draws phase markers at 25/50/75/100%%",
     )
+    parser.add_argument(
+        "--smooth",
+        type=int,
+        default=11,
+        metavar="N",
+        help="Janela do filtro Savitzky-Golay (impar, default=11; 0 desativa)",
+    )
     args = parser.parse_args()
 
     if not args.csv.exists():
         print(f"ERROR: CSV not found: {args.csv}", file=sys.stderr)
         sys.exit(1)
 
-    plot(args.csv, ramp_h=args.ramp)
+    plot(args.csv, ramp_h=args.ramp, smooth=args.smooth)
 
 
 if __name__ == "__main__":
