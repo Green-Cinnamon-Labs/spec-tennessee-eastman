@@ -8,6 +8,70 @@ O experimento mais recente aparece primeiro.
 
 
 
+## Experimento 15 — IDV(1): Step na razão A/C do feed (corrente 4)
+
+**Data:** 2026-06-01 — **Planejado**
+
+### Observação
+
+O Exp 13 validou o baseline (pressão ≈ 2699 kPa, Sep/Stripper levels ≈ 50%, planta estável por 20h). O Exp 14 revelou que IDV(4) é inerte no FORTRAN original e que a modelagem quasi-static do trocador de calor introduzia instabilidade — resolvido com `twr = yy[36]`. Este é o primeiro experimento com distúrbio realmente efetivo nesta infraestrutura.
+
+IDV(1) altera a **razão A/C no feed combinado (corrente 4)** com um degrau de passo — implementado diretamente em `TESUB8(1, TIME)` no FORTRAN e mapeado via `active_idv` no Rust. O efeito é composicional e não depende de nenhuma modelagem do sistema de resfriamento.
+
+### Hipótese
+
+Mais A na corrente 4 → mais reagente disponível para as reações exotérmicas (A+C+D→G, A+C+E→H) → temperatura do reator (XMEAS(9)) sobe → pressão (XMEAS(7)) sobe → controlador de pressão abre purge (XMV(6)).
+
+Ao contrário de Exp 14, **um novo SS estável é esperado**: IDV(1) apenas desloca o ponto de operação, não colapsa o sistema.
+
+| Variável           | Baseline (Exp 13) | Esperado após IDV(1) |
+| ------------------ | ----------------- | -------------------- |
+| XMEAS(9) Reactor T | ~120 °C           | levemente acima      |
+| XMEAS(7) Reactor P | ~2699 kPa         | levemente acima      |
+| XMV(6) Purge       | ~39 %             | mais aberto          |
+| XMEAS(10) Purge F  | ~0.4 kscmh        | maior                |
+
+Sep e Stripper Levels devem permanecer controlados pelos P-controllers.
+
+### Intervenção
+
+Configuração via VS Code debugger local:
+
+**tep-plant:**
+```
+Debugger config: "Planta: baseline (100x, sem distúrbios)"
+  STEP_DELAY_MS=36
+  ACTIVE_IDV=""  (vazio — distúrbios controlados via IHM)
+```
+
+**tep-ihm:**
+```
+Debugger config: "IHM: planta local (gRPC + CSV)"
+  RECORD_CSV=true
+  RECORD_CSV_PATH=/data/simulation_log_15.0.csv
+```
+
+**Procedimento:**
+
+1. Recompilar `tep-plant` (`cargo build`) — garantir que `twr = yy[36]` (fix do Exp 14) está ativo
+2. Iniciar planta com snapshot `te_exp3_snapshot.toml` e `ACTIVE_IDV=""` (sem distúrbios)
+3. Iniciar IHM e aguardar SS (XMEAS(7) ≈ 2699 kPa estável, ~5h simuladas ≈ 3 min de relógio)
+4. Clicar em **IDV(1)** no painel "Disturbances" da IHM
+5. Observar: XMEAS(9), XMEAS(7), XMV(6), XMEAS(10), composição do produto (corrente 9)
+6. Rodar até novo SS ou t = 25h simuladas (~15 min de relógio a 100×)
+7. Exportar CSV via `⬇ CSV`; salvar em `docs/simulations/simulation_log_15.0.csv`
+8. Plotar: `python -m tep_analysis.plot --csv docs/simulations/simulation_log_15.0.csv`
+
+### Resultado
+
+_Pendente._
+
+### Conclusão
+
+_Pendente._
+
+---
+
 ## Experimento 14 — IDV(4): Step na temperatura de entrada do CW do reator
 
 **Data:** 2026-05-18 — **Iniciado** (em andamento)
