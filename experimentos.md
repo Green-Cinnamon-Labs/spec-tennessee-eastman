@@ -8,6 +8,68 @@ O experimento mais recente aparece primeiro.
 
 
 
+## Experimento 16 — IDV(2): Step na composição de B no feed (corrente 4)
+
+**Data:** 2026-06-02 — **Planejado**
+
+### Observação
+
+O Exp 15 mostrou que IDV(1) colapsa a planta por sobrepressão em ~2.5h: menos A → reações mais lentas → gás acumula → purge insuficiente. IDV(2) atua sobre um componente **inerte**: B dobra no feed (0.005 → 0.010 mol frac), enquanto A e C mal se movem (−0.5% cada). O mecanismo de colapso do Exp 15 não se aplica aqui — não há alteração de cinética.
+
+### Hipótese
+
+IDV(2)=1 dobra B na corrente 4 (`XST(2,4) = TESUB8(2) + IDV(2)*0.005`). Como B é inerte, ele **não reage**, mas ocupa volume no espaço gasoso do reator e do loop de reciclo. A única saída de B do sistema é a purga (XMV(6)).
+
+**Mecanismo esperado:** mais B entra → B se acumula no vapor do reator e no reciclo → pressão (XMEAS(7)) sobe → controlador P abre XMV(6) → mais B purgado. Um **novo SS estável** deve ser atingido quando a taxa de remoção de B pela purga iguala a taxa de entrada. O sistema não colapsa porque a reatividade não mudou — apenas o inventário de inerte.
+
+Temperatura (XMEAS(9)) não deve se mover: B não participa das reações exotérmicas. Composição de B no reator (XMEAS(24)) e na purga (XMEAS(30)) devem subir e estabilizar no novo SS.
+
+| Variável           | Baseline (Exp 13) | Esperado após IDV(2)          |
+| ------------------ | ----------------- | ----------------------------- |
+| XMEAS(24) B reator | ~?%               | ↑ — novo SS mais alto         |
+| XMEAS(30) B purga  | ~?%               | ↑ — novo SS mais alto         |
+| XMEAS(7) Reactor P | ~2699 kPa         | ↑ levemente — novo SS estável |
+| XMEAS(9) Reactor T | ~120 °C           | flat — B é inerte             |
+| XMV(6) Purge       | ~39 %             | ↑ — remove o B extra          |
+
+### Intervenção
+
+Configuração via VS Code debugger local:
+
+**tep-plant:**
+```
+Debugger config: "Planta: baseline (100x, sem distúrbios)"
+  STEP_DELAY_MS=36
+  ACTIVE_IDV=""  (vazio — distúrbios controlados via IHM)
+```
+
+**tep-ihm:**
+```
+Debugger config: "IHM: planta local (gRPC + CSV)"
+  RECORD_CSV=true
+  RECORD_CSV_PATH=/data/simulation_log_16.0.csv
+```
+
+**Procedimento:**
+
+1. Iniciar planta com snapshot `te_exp3_snapshot.toml` e `ACTIVE_IDV=""` (sem distúrbios)
+2. Iniciar IHM e aguardar SS (XMEAS(7) ≈ 2699 kPa estável, ~5h simuladas ≈ 3 min)
+3. Clicar em **IDV(2)** no painel "Disturbances" da IHM
+4. Observar: XMEAS(24) e XMEAS(30) (composição B), XMEAS(7) pressão, XMV(6) purge
+5. Rodar até novo SS ou t = 25h simuladas (~15 min de relógio a 100×)
+6. Exportar CSV via `⬇ CSV`; salvar em `docs/simulations/simulation_log_16.0.csv`
+7. Plotar: `python -m tep_analysis.plot --csv docs/simulations/simulation_log_16.0.csv`
+
+### Resultado
+
+_Pendente._
+
+### Conclusão
+
+_Pendente._
+
+---
+
 ## Experimento 15 — IDV(1): Step na razão A/C do feed (corrente 4)
 
 **Data:** 2026-06-01 — **Concluído**
