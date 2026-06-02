@@ -8,6 +8,65 @@ O experimento mais recente aparece primeiro.
 
 
 
+## Experimento 17 — IDV(3): Step na temperatura do D feed (corrente 2)
+
+**Data:** 2026-06-02 — **Planejado**
+
+### Observação
+
+Exp 15 (IDV(1)) e Exp 16 (IDV(2)) mostraram dois modos de colapso: cinético (rápido, 2.5h) e por acúmulo de inerte (lento, dezenas de horas). IDV(3) é qualitativamente diferente: não altera composição nem reatividade — apenas a **entalpia do feed de D**. D é um reagente líquido (corrente 2); temperatura mais alta muda o balanço de calor de entrada no reator sem mudar a estequiometria.
+
+Mecanismo FORTRAN: `TST(1) = TESUB8(3,TIME) + IDV(3)*5.D0` → D feed sobe +5°C em step.
+Rust equivalente: `self.tst[0] = eval_disturbance(2, time, ds) + idv[2] as f64 * 5.0` (`model.rs:275`).
+
+### Hipótese
+
+D líquido mais quente entra no reator com maior entalpia específica — a temperatura do reator (XMEAS(9)) sobe. **Crítico: não há controlador de temperatura na planta.** O `ControllerBank` tem apenas 3 malhas P: pressão→purge, nível separador→underflow, nível stripper→produto (`main.rs:62-64`). XMV(10) e XMV(11) (CWS reator e condensador) ficam fixos.
+
+**Mecanismo esperado:**
+
+1. D feed +5°C → entalpia de entrada ↑ → **temperatura do reator sobe sem controle direto**
+2. Temperatura mais alta → taxa de reação Arrhenius ↑ → mais consumo de reagentes e produção de G/H
+3. Mudança na produção de gás altera o balanço de pressão → XMEAS(7) pode subir ou cair dependendo do balanço líquido das reações
+4. Só então `pressure_reactor` age via XMV(6) (purge) — resposta indireta e defasada
+
+Hipótese central: **temperatura sobe monotonicamente (sem malha fechada), pressão segue com algum atraso, e o único atuador que responde é XMV(6) via pressão.** Se a temperatura cruzar o ISD (>175°C) antes de estabilizar, a planta colapsa por temperatura — diferente dos Exp 15 e 16, que colapsaram por pressão.
+
+| Variável           | Baseline  | Esperado após IDV(3)                        |
+| ------------------ | --------- | ------------------------------------------- |
+| XMEAS(9) Reactor T | ~120 °C   | ↑ sem controle direto — deriva ou ISD       |
+| XMEAS(7) Reactor P | ~2699 kPa | ↑ ou ↓ dependendo das reações aceleradas    |
+| XMV(10) CWS valve  | ~41 %     | **fixo** — sem controlador de temperatura   |
+| XMV(6) Purge valve | ~39 %     | muda apenas se pressão variar               |
+| XMEAS(23,24,25)    | ~31/10/26%| pode derivar — cinética alterada por T      |
+
+### Intervenção
+
+**tep-plant:** Debugger config `"Planta: baseline (100x, sem distúrbios)"` com `ACTIVE_IDV=""`
+
+**tep-ihm:** `RECORD_CSV=true`, `RECORD_CSV_PATH=/data/simulation_log_17.0.csv`
+
+**Procedimento:**
+1. Iniciar planta com snapshot `te_exp3_snapshot.toml`, aguardar SS (~5h simuladas)
+2. Ativar **IDV(3)** no painel "Disturbances" da IHM
+3. Observar: XMEAS(9) temperatura, XMEAS(7) pressão, XMV(10) CWS valve
+4. Rodar até novo SS ou até ISD — se a temperatura se estabilizar em 20h, o distúrbio é "benigno"
+5. Exportar CSV; salvar como `docs/simulations/simulation_log_17.0.csv`
+6. Plotar: `python -m tep_analysis.plot --csv docs/simulations/simulation_log_17.0.csv --smooth 11`
+
+**Variáveis a logar no CSV** (verificar se `tep-ihm` está capturando):
+- `xmeas_7` (pressão), `xmeas_9` (temperatura), `xmv_10` (CWS valve), `xmeas_2` (D feed flow)
+
+### Resultado
+
+_Pendente._
+
+### Conclusão
+
+_Pendente._
+
+---
+
 ## Experimento 16 — IDV(2): Step na composição de B no feed (corrente 4)
 
 **Data:** 2026-06-02 — **Concluído**
