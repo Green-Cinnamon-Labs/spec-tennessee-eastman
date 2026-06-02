@@ -10,7 +10,7 @@ O experimento mais recente aparece primeiro.
 
 ## Experimento 16 — IDV(2): Step na composição de B no feed (corrente 4)
 
-**Data:** 2026-06-02 — **Planejado**
+**Data:** 2026-06-02 — **Concluído**
 
 ### Observação
 
@@ -62,11 +62,26 @@ Debugger config: "IHM: planta local (gRPC + CSV)"
 
 ### Resultado
 
-_Pendente._
+**CSV:** `docs/simulations/simulation_log.csv` | **Plot:** `docs/simulations/plots/simulation_log.png`
+
+| Variável           | Baseline | Observado após IDV(2)         | Hipótese |
+| ------------------ | -------- | ----------------------------- | -------- |
+| XMEAS(24) B reator | ~10 mol% | ↑ ~11 mol% — novo SS estável  | ✓ confirmada |
+| XMEAS(7) Reactor P | ~2727 kPa| ↑ ~2840 kPa — novo patamar    | ✓ parcial (SS atingido, não colapso) |
+| XMEAS(9) Reactor T | ~120 °C  | flat — sem variação           | ✓ confirmada |
+| XMV(6) Purge valve | ~42 %    | ↑ ~53 % — abre em degrau      | ✓ confirmada |
+| XMEAS(23) A mol%   | ~31 mol% | levemente ↓ (diluição por B)  | não previsto |
+| XMEAS(25) C mol%   | ~26 mol% | levemente ↓ (diluição por B)  | não previsto |
+
+O degrau composicional de B é visível em t ≈ 6.5 h simuladas. A pressão sobe de ~2727 para ~2840 kPa num degrau e se estabiliza no novo patamar. XMV(6) abre de 42% para 53% em resposta. Temperatura flat confirma que B é inerte. O experimento foi acelerado para 100× a partir de ~t=8h pois a planta parecia instável mas evoluía lentamente — o novo SS se confirmou estável até t=31.4h.
 
 ### Conclusão
 
-_Pendente._
+**IDV(2) estabelece um novo estado estacionário — a planta não colapsa.** O mecanismo é direto: mais B inerte → inventário gasoso aumenta → pressão sobe → controlador P abre XMV(6) → taxa de purga de B aumenta até equilibrar a entrada → novo SS. A hipótese foi confirmada na estrutura qualitativa.
+
+**Resultado diagnóstico importante:** o controlador P de pressão via purge *responde corretamente* ao distúrbio mas *não restaura* a pressão ao baseline — apenas a segura num patamar ~140 kPa acima. Isso é esperado: um controlador P sem integrador tem erro estacionário permanente frente a distúrbios de carga. Para rejeitar IDV(2) e retornar ao baseline seria necessário controle PI de pressão ou uma ação supervisória que ajuste o setpoint de purga.
+
+**Contraste com Exp 15:** IDV(1) colapsa a planta em 2.5h; IDV(2) a eleva a um novo SS estável. A diferença é reatividade: IDV(1) muda a cinética, IDV(2) apenas o inventário de inerte. Para o TCC, IDV(2) é o caso mais limpo de *distúrbio mensurável → resposta da planta → atuação do controlador → falha de estabilização completa* — justifica a camada supervisória sem ambiguidade de modelagem térmica.
 
 ---
 

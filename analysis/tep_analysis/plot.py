@@ -72,10 +72,11 @@ PANELS = [
         (0, 100),
     ),
     (
-        "Reactor A & C Composition  (XMEAS(23,25))",
+        "Reactor A, B & C Composition  (XMEAS(23,24,25))",
         "mol%",
         [
             ("XMEAS(23)", "A mol%  (XMEAS23)", "#e74c3c"),
+            ("XMEAS(24)", "B mol%  (XMEAS24)", "#f39c12"),
             ("XMEAS(25)", "C mol%  (XMEAS25)", "#2ecc71"),
         ],
         (None, None),
@@ -187,7 +188,8 @@ def _smooth(series: pd.Series, window: int) -> pd.Series:
         return series.rolling(window=w, center=True, min_periods=1).mean()
 
 
-def plot(csv_path: Path, ramp_h: float | None = None, smooth: int = 0) -> None:
+def plot(csv_path: Path, ramp_h: float | None = None, smooth: int = 0,
+         tmin: float | None = None, tmax: float | None = None) -> None:
     print(f"Loading {csv_path} ...")
     df = pd.read_csv(csv_path)
     df = _normalise_columns(df)
@@ -287,6 +289,13 @@ def plot(csv_path: Path, ramp_h: float | None = None, smooth: int = 0) -> None:
     for ax in flat_axes[(nrows - 1) * ncols:]:
         ax.set_xlabel("Simulated time (h)", fontsize=8)
 
+    # zoom de tempo: aplica xlim em todos os eixos visíveis (smooth já usou os dados completos)
+    if tmin is not None or tmax is not None:
+        x_lo = tmin if tmin is not None else t.min()
+        x_hi = tmax if tmax is not None else t.max()
+        for ax in flat_axes[:n_panels]:
+            ax.set_xlim(x_lo, x_hi)
+
     _PLOTS_DIR.mkdir(parents=True, exist_ok=True)
     out = _PLOTS_DIR / (csv_path.stem + ".png")
     fig.savefig(out, dpi=150)
@@ -309,6 +318,8 @@ def main() -> None:
         metavar="HOURS",
         help="Cold-start ramp duration in simulated hours; draws phase markers at 25/50/75/100%%",
     )
+    parser.add_argument("--tmin", type=float, default=None, metavar="H", help="Início do intervalo de tempo (h)")
+    parser.add_argument("--tmax", type=float, default=None, metavar="H", help="Fim do intervalo de tempo (h)")
     parser.add_argument(
         "--smooth",
         type=int,
@@ -322,7 +333,7 @@ def main() -> None:
         print(f"ERROR: CSV not found: {args.csv}", file=sys.stderr)
         sys.exit(1)
 
-    plot(args.csv, ramp_h=args.ramp, smooth=args.smooth)
+    plot(args.csv, ramp_h=args.ramp, smooth=args.smooth, tmin=args.tmin, tmax=args.tmax)
 
 
 if __name__ == "__main__":

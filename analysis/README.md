@@ -35,7 +35,7 @@ Usa o entry point definido em `pyproject.toml`: `plot = "tep_analysis.plot:main"
 ### 2. Gerar plot com CSV específico
 
 ```bash
-poetry run plot --csv ../tennessee-eastman-service/simulation_log.csv
+poetry run plot --csv ../docs/simulations/simulation_log.csv --smooth 41 --tmax 10
 ```
 
 ### 3. Comando equivalente via módulo Python
