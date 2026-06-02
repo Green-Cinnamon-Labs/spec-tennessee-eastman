@@ -59,11 +59,21 @@ Hipótese central: **temperatura sobe monotonicamente (sem malha fechada), press
 
 ### Resultado
 
-_Pendente._
+**CSV:** `docs/simulations/simulation_log.csv` | 718 linhas, t = 2.13 → 1102.77 h (~45 dias simulados)
+
+| Variável           | Baseline  | Após IDV(3) — 1100h depois    |
+| ------------------ | --------- | ----------------------------- |
+| XMEAS(9) Reactor T | 120.43 °C | 120.43 °C — variação < 0.01°C |
+| XMEAS(7) Reactor P | 2695 kPa  | 2703 kPa — +8 kPa em 45 dias  |
+| XMV(6) Purge valve | 39.1 %    | 39.9 % — +0.8 pp              |
+
+Temperatura absolutamente flat. A variação de pressão de 8 kPa em 1100h simuladas está dentro do ruído de processo. O experimento foi acelerado para 100% logo após o IDV(3) ser ativado (~t=3.7h); a diferença de taxa de amostragem é visível no CSV (dt ≈ 0.003h lento → dt ≈ 8h rápido). Nenhum degrau detectável em nenhuma variável.
 
 ### Conclusão
 
-_Pendente._
+**IDV(3) é numericamente nulo nesta planta.** A análise do código confirmou o mecanismo: a entalpia extra do D feed entra em `yp[35]` (UCVV), diluída pelo reciclo dominante antes de chegar ao reator via `hst[6] = hst[5]`. Com `VRNG[0] = 400` (D feed range) frente ao reciclo de ~26 kscmh, o impacto térmico é imperceptível.
+
+**Implicação para o TCC:** IDV(3) não é um distúrbio útil para exercitar o supervisor. Não gera nenhuma resposta mensurável e não ameaça os limites ISD. O foco deve permanecer em IDV(1) (colapso cinético rápido) e IDV(2) (acúmulo lento de inerte) como os casos de interesse para a lógica supervisória.
 
 ---
 
