@@ -51,7 +51,23 @@ Todos os 3 — para ser sincero estou na dúvida a respeito do CRD k8s:
 
 O k8s em si, no meu caso é o `kind`, não precisa de nada. É a instalação do CRD que o dará esse poder. Eu precise talvez elaborar um pouco algumas das abstrações que discuto em `Diagnóstico de Qualidade de Malhas` — C:\projetos\pessoal\tep-monografia\latex\trabalho\Cap2-referencialteorico.tex. Talvez eu precise fazer algumas coisas bem básicas nesse sentido só para implementar uma política básica de supervisão.
 
-na planta e na IHM é onde espero as maiores mudanças. Na planta, é expor alguns services. Ela não consome nada! Não irei implementar clientes e services internos nela — poderia ser o caso, porque teoricamente os sensores, atuadores e controladores que pertencem a camada de controle contínuo (level 2 de Purdue) estariam conectados nessa dessa forma — somente da planta para a IHM e k8s, ou seja, me restringiria a implementar nessa escalada de level 2 → level 3. Inclusive, limitaria a essa direção, não faria nada do k8s afetando level 2, só iria fazer ele observar. 
+na planta e na IHM é onde espero as maiores mudanças. Na planta, é expor alguns services. Ela não consome nada! Não irei implementar clientes e services internos nela — poderia ser o caso, porque teoricamente os sensores, atuadores e controladores que pertencem a camada de controle contínuo (level 2 de Purdue) estariam conectados nessa dessa forma — somente da planta para a IHM e k8s, ou seja, me restringiria a implementar nessa escalada de level 2 → level 3. Inclusive, limitaria a essa direção, não faria nada do k8s afetando level 2, só iria fazer ele observar.
+
+### tep-plant — mudanças necessárias (detalhado)
+
+**Pré-requisito para o servidor OPC-UA.** Duas etapas sequenciais:
+
+**Etapa 1 — [#56](https://github.com/Green-Cinnamon-Labs/spec-tennessee-eastman/issues/56): Sensor e Actuator como entidades injetáveis**
+
+Hoje ruído gaussiano (`XNS`) e dinâmica de primeira ordem das válvulas (`VTAU`) estão embutidos diretamente em `core/src/dynamics/tep/model.rs`. Os traits `Sensor` e `Actuator` existem mas são passthrough sem uso real.
+
+A refatoração extrai essa lógica para implementações concretas (`NoisySensor`, `FirstOrderActuator`) injetadas no construtor do modelo. O modelo passa a chamar `sensor.measure()` e `actuator.apply()` sem conhecer a implementação. **Não muda o resultado numérico** — é reorganização de onde o cálculo vive.
+
+**Etapa 2 — [#57](https://github.com/Green-Cinnamon-Labs/spec-tennessee-eastman/issues/57): Camada de process image / instrumentação**
+
+Com sensores e atuadores como objetos, cria-se uma fachada `ProcessImage` sobre o `Bus`. Cada variável deixa de ser uma posição em `Vec<f64>` anônimo e passa a ter: identidade (`NodeId`), nome, unidade, faixa, status. O `metadata.rs` (hoje com apenas 3 variáveis) será completado para todos os 41 XMEAS + 12 XMV.
+
+Essa camada é o que o servidor OPC-UA vai consumir — cada entrada do `ProcessImage` vira um nó do address space. 
 
 ```mermaid
 flowchart TB
