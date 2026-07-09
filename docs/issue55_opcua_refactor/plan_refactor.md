@@ -86,6 +86,56 @@ Sensor fica fora do `add_dynamic` porque não participa da avaliação — ele s
 
 Disturbance fica fora por um motivo diferente: não é dono de um componente, atravessa vários ao mesmo tempo (reação no Reactor, UA do condensador e vazão nos Flows, coeficientes de troca no Heat). Não tem um único lugar na árvore onde caiba como filho — será tratado como entrada injetada, associada a cada componente que o consome.
 
+### 3.5. Três objetos, único ponto de entrada/saída para o mundo externo
+
+Quem escreve a dinâmica de uma planta em cima do `simulation-framework` (implementando `DynamicModel`/`evaluate()`) não se preocupa em expor dado nenhum — via de regra, a única preocupação dele é escrever a física corretamente. Existem exatamente três objetos que dão a essa lógica algum tipo de interação com o mundo externo, e só eles: **Sensor** (expõe um valor observado), **Atuador** (permite ação sobre a planta) e **Controlador** (permite fechar uma malha de controle sobre a planta). Fora desses três, não há outra porta de entrada/saída entre a dinâmica simulada e o mundo de fora — se o usuário do framework quer expor ou influenciar algo, é através de um desses objetos que ele faz isso, nunca mexendo direto na dinâmica.
+
+### 3.5.1. Escopo fechado em Sensor, por ora
+
+Atuador e Controlador ficam registrados aqui como parte do mesmo trio — já são papéis reconhecidos e nomeados — mas o design detalhado de cada um fica para depois. As seções 3.6 a 3.10 especificam só o `Sensor`.
+
+### 3.6. Sensor não participa do `evaluate()` — opera sobre `CurrentState`
+
+Sensor não tem nenhuma relação com `evaluate()`/`EvaluationState` (seção 8) — quem escreve ali são os `DynamicModel`s resolvendo sua própria física, a cada sub-passo do RK4. Sensor lê de `StateRegistry.CurrentState` (seção 1.3): o repositório já commitado, depois que `set_current_state()` fechou o passo. Isso é a versão concreta do que 3.2 já dizia ("leitura pura, depois que o modelo já resolveu tudo") — Sensor nunca é um participante da avaliação, só observa o que já está definitivo.
+
+### 3.6.1. Sensor pode ter estado interno próprio — sem ser `DynamicModel`
+
+Problemas como histerese/banda morta ou ruído não exigem dinâmica integrada: Sensor pode guardar estado mutável próprio (última leitura, gerador de ruído) atualizado como efeito colateral de cada leitura — uma função `(valor_bruto, estado_do_sensor) -> saída`. A diferença para um `DynamicModel` é que esse estado nunca entra no vetor que o `Integrator`/RK4 avança; não há `state_size()`/derivada, só memória local consultada a cada `read()`. Implementado como `trait SensorBehavior` (`simulation-framework/src/sensor/model.rs`), com `Ideal`, `Noisy` e `Hysteresis` como comportamentos plugáveis no `Sensor`.
+
+### 3.6.2. Leitura concreta: `StateRegistry::read(key)` e `ReadProxy`
+
+~~Implementado: `StateRegistry::read(&self, key: &str) -> Option<f64>` devolve o valor já commitado em `current_state`... Por ora é lookup por hash a cada leitura, aceitável porque Sensor não é lido a cada sub-passo do RK4... não implementado agora por ser otimização prematura sobre um ponto de acesso que ainda nem tem consumidor real.~~ **Superado:** o consumidor real chegou (o próprio `Sensor`) e o lookup por hash a cada leitura foi trocado por um handle resolvido-uma-vez. `current_state` deixou de ser `Vec<StateSlot>` e virou `Rc<RefCell<Vec<Cell<f64>>>>` — mesma forma de `evaluation_state`, mutado célula-a-célula por `commit()`, nunca substituído por inteiro (isso também eliminou uma alocação de `Vec` + clone de `String` por variável a cada passo, que o `commit()` antigo pagava). `StateRegistry::read_proxy(key) -> Option<ReadProxy>` resolve a chave uma vez contra esse buffer; `StateRegistry::read(key) -> Option<f64>` continua existindo, mas rebaixado a leitura pontual de debug/inspeção avulsa — não é mais o que `Sensor` usa.
+
+### 3.6.3. `Sensor` só lê — garantido pelo tipo, não por disciplina
+
+Sensor é, na prática, um pipe: observa uma chave, aplica um `SensorBehavior` (seção 3.6.1) e expõe o resultado — nunca escreve de volta no `StateRegistry`. ~~`Sensor` guarda um `RegistryView`... `RegistryView` só expõe `read()`~~ **Atualizado:** `Sensor` guarda um `ReadProxy` (seção 3.6.2), resolvido uma única vez em `Sensor::new()` — não guarda mais `RegistryView` depois de construído, e `read()` não faz mais lookup por string nenhum, só `self.proxy.get()`. `RegistryView` não desapareceu: continua a fachada somente-leitura sobre `Rc<RefCell<StateRegistry>>` (sem `subscribe()`/`resolve()`/`commit()`), mas seu papel principal virou ser a **fábrica** que produz o `ReadProxy` — `RegistryView::read_proxy(key)` — usada uma única vez, na construção do Sensor, não a cada leitura. `Sensor::new()` continua recebendo o `Rc<RefCell<StateRegistry>>` normal por fora; a conversão pra `RegistryView`/`ReadProxy` é interna.
+
+### 3.6.4. `ReadProxy` é um tipo à parte de `Proxy` — não pode ser confundido com valor hipotético
+
+`Proxy` endereça `EvaluationState`, que pode conter valor hipotético de um solver iterativo em andamento (seção 7.2). `ReadProxy` só existe sobre `CurrentState` — sempre o último valor confirmado. São dois `struct`s distintos (mesma forma: buffer + índice), de propósito: se fosse o mesmo tipo pros dois buffers, nada impediria alguém entregar por engano ao `Sensor` um `Proxy` resolvido contra `EvaluationState`, e o `Sensor` passaria a ler valor intermediário sem ninguém perceber — mesmo tipo, mesmo `get()`, compila igual. Com tipos separados isso não compila. Diferente de `Proxy`, `ReadProxy` nasce já resolvido (não tem fase `unresolved`/`usize::MAX`): só é criado depois que `resolve()` geral já rodou (seção 3.8) e a chave, portanto, já existe — e não tem `set()`, porque quem lê `CurrentState` nunca deveria escrever nele por fora do `commit()` do `StateRegistry`.
+
+### 3.6.5. `StateSlot` deixou de ser o armazenamento principal
+
+Com `current_state` virando `Rc<RefCell<Vec<Cell<f64>>>>`, `StateSlot{key, value}` não guarda mais o estado corrente — é reconstruído sob demanda por `StateRegistry::snapshot() -> Vec<StateSlot>`, zipando `index` (a fonte de verdade operacional pra `key -> posição`) com o buffer atual. Serve só pra metadado/catálogo: inspeção, debug, listagem de sinais, exportação nomeada — nunca o caminho por onde `Proxy`/`ReadProxy` leem ou escrevem. Resolver uma chave em tempo real é sempre trabalho do `index: HashMap<String, usize>`, nunca de vasculhar um `Vec<StateSlot>`.
+
+### 3.7. Sensor acompanha exatamente uma variável
+
+Um `Sensor` não agrega várias variáveis de uma vez — não existe "sensor composto" nessa camada. Se o usuário quer acompanhar os valores de A, B e C, ele declara três sensores, um por variável. Cada `Sensor` aponta para uma única chave do `StateRegistry`.
+
+### 3.7.1. Sensor é agnóstico ao tipo físico do sinal
+
+Não existe `FI`/`PI`/`LI`/`TI`/`AI` como tipos distintos — essa tentativa existiu no código de `simulation-framework` (um struct por grandeza física, todos com o mesmo corpo) e foi abandonada. Sensor não sabe se está lendo vazão, pressão, temperatura ou nível — isso é metadado de quem declara o sensor (tag/unidade/faixa, ver `eval_naming_standard.md`), não parte do tipo do objeto. O que varia entre sensores é o **comportamento** de leitura (seção 3.6.1: ideal, com ruído, com histerese), plugável via `SensorBehavior`, não a grandeza física medida.
+
+### 3.8. Onde o Sensor é declarado
+
+A declaração é explícita e feita por quem monta a planta/simulação — nunca automática ou implícita na dinâmica em si. ~~Ainda em aberto exatamente em qual altura... Pendência de design — as duas opções fecham igualmente bem com o resto do modelo.~~ **Resolvido:** `Sensor` só pode ser construído depois que todo `DynamicModel` já chamou `subscribe()` e `StateRegistry::resolve()` geral já rodou (seção 9.2) — nunca junto dos `add_dynamic` na implementação principal. Motivo prático, não só estético: `Sensor::new()` resolve a chave contra `CurrentState` uma única vez, na hora (seção 3.6.2/3.6.4), sem segunda fase de resolução como `Proxy::unresolved` tem para `needs` — se a chave ainda não existir em `index` nesse momento, é erro (`Result<Self, String>`), não um estado que se resolve depois. Isso empurra a declaração de Sensores pra depois do `resolve()`, o que combina melhor com a instanciação de `Simulation` (seção 9) do que com o construtor do modelo composto.
+
+### 3.9. Exposição para fora do processo ainda em aberto
+
+~~Declarar um `Sensor` sobre uma chave equivale a registrar um observer/subscriber que acompanha as mudanças daquele `Proxy` dentro de `CurrentState`...~~ **Corrigido (seção 3.6.2/3.6.4):** o mecanismo real é `ReadProxy`, resolvido uma vez contra `current_state` (agora `Rc<RefCell<Vec<Cell<f64>>>>`), tipo distinto de `Proxy`. O que ainda não está fechado é como o valor lido por um `Sensor` sai de fato do processo: que forma toma — porta, registrador, canal, arquivo, socket — é decisão de design em aberto, não uma pendência de implementação já especificada.
+
+**Esclarecido:** o servidor OPC-UA não vai rodar dentro do processo da simulação — vai consumir a simulação de outra máquina/container por alguma interface de rede ainda a desenhar (gRPC, HTTP, WebSocket, stream, snapshot API...). Por isso a base `Rc<RefCell<_>>`/`Cell` de `StateRegistry`/`Proxy`/`ReadProxy` — que é estritamente single-thread, nem `Send` nem `Sync` — não é um problema para o OPC-UA em si; é só uma decisão interna de como o processo da simulação organiza sua própria memória. O ponto de atenção fica deslocado: não é mais "o Sensor precisa ser thread-safe", é "o que quer que sirva a interface de rede (a próxima camada a desenhar) precisa rodar dentro do mesmo processo/thread que já fala `Rc<RefCell<StateRegistry>>`, e serializar/expor os valores lidos pelos Sensores pra fora dali" — a fronteira thread-safe, se houver, é entre esse serviço local e a rede, não dentro do `simulation-framework`. Fica registrado aqui como o próximo ponto a resolver antes de qualquer gateway poder ser construído em cima disso.
+
 ## 4. Sobre a viabilidade da arquitetura (DAG vs. DAE)
 
 ### 4.1. TEP hoje é um DAG (grafo acíclico dirigido)
@@ -225,3 +275,55 @@ Não é que ela extrai e devolve uma cópia isolada do subconjunto — ela opera
 ### 9.8. Depois do `step()`, `Simulation` grava o `EvaluationState` inteiro nos slots reais
 
 Não só o subconjunto de derivadas que o `Integrator` operou — o `EvaluationState` inteiro, incluindo todos os valores algébricos que os `DynamicModel`s calcularam como efeito colateral durante a última avaliação daquele passo. Por tabela, informações que nem o `Integrator` nem o `Simulation` precisaram olhar (ex.: `reactor.temperature`) ficam corretas e disponíveis para quem quer que precise delas depois (ex.: a `AcquisitionLayer` da seção 3) — sem custo extra de computação, porque já foram calculadas durante o `evaluate()`.
+
+## 10. Sobre a I/O Image — fronteira externa mínima
+
+### 10.1. O que é: um catálogo central de sinais nomeados
+
+Implementado em `simulation-framework/src/io_image.rs`, struct `IoImage`. É o lugar único onde `Sensor`s (leitura) e comandos de `Atuador` (escrita) ficam disponíveis por nome — análogo a uma imagem de I/O/tabela de tags/registradores numa planta real. Convenção de nome (não imposta pelo tipo): `sensors/<algo>` pra leitura, `actuators/<algo>` pra escrita — ex.: `sensors/reactor.temperature`, `actuators/cooling_water.command`.
+
+### 10.2. Separado de `DynamicModel`, RK4, `StateRegistry` e avaliação hipotética
+
+`io_image.rs` não importa `state_registry` — só conhece `Sensor` (seção 3) como tipo de leitura, e um trait `CommandSink` próprio como tipo de escrita. Quem já resolveu a chave contra o `StateRegistry` (construindo o `Sensor`, seção 3.8) entrega o `Sensor` pronto pra `IoImage.publish_sensor()`; `IoImage` nunca soube nem precisa saber que `StateRegistry`/`Proxy`/`ReadProxy`/`EvaluationState` existem.
+
+### 10.3. Leitura: `IoImage.publish_sensor(name, sensor)` / `IoImage.read(name)`
+
+`IoImage` guarda um `HashMap<String, Sensor>` — publicar é só inserir um `Sensor` já construído sob um nome. `read(name)` chama `Sensor::read()` por trás (mesmo comportamento plugável — ideal/ruído/histerese — da seção 3.6.1), devolvendo `None` se o nome não existir.
+
+### 10.4. Escrita: `CommandSink`, um trait de propósito, não acoplado a `Valve`/`Agitator`
+
+```rust
+pub trait CommandSink {
+    fn write(&mut self, value: f64);
+}
+```
+
+Qualquer `FnMut(f64)` implementa `CommandSink` de graça (impl genérica sobre closures) — então `Valve::set_command`/`Agitator::set_command` (que são métodos inerentes concretos, não um trait; seção 2.2 já não os torna `DynamicModel` do tipo composto) viram sinal de escrita só por fechamento: `io.register_actuator("actuators/cooling_water.command", move |v| valve.set_command(v))`. `IoImage` nunca precisa conhecer `Valve` como tipo — só o `CommandSink` por trás.
+
+### 10.5. Controlador ainda não modelado — mesma interface, sem mudança de forma
+
+Controlador (seção 3.5) não tem implementação ainda. Quando existir, o desenho já previsto é: ele lê sinais via `IoImage.read()` (os mesmos `sensors/...` que qualquer outro consumidor leria) e escreve via `IoImage.write()` (nos mesmos `actuators/...`) — sem exigir nenhuma mudança na forma de `IoImage`. Se um Controlador quiser publicar sua própria saída como sinal observável (`controllers/reactor_temp.output`), o caminho natural é ele também virar, do lado de escrita, o mesmo `CommandSink` por closure — não foi implementado porque não há Controlador ainda pra testar contra.
+
+### 10.6. ~~Único adaptador hoje: em memória, dentro do processo~~
+
+~~`IoImage` é, ela mesma, o "adaptador tosco" pedido... Adaptadores futuros (OPC-UA, Modbus/register-map, HTTP/gRPC, WebSocket/stream) consumiriam essa mesma interface por fora... nenhum desses existe ainda.~~ **Superado — o primeiro adaptador de rede existe:** `simulation-framework/src/opcua_adapter.rs` (`pub async fn serve(simulation: Simulation, endpoint: &str)`), atrás da feature `opcua` (puxa `async-opcua` + `tokio` — pesados demais pra serem dependência default do framework). Sobe um servidor OPC-UA de verdade: um node read-only por `io.sensor_names()`, atualizado por push (`node_manager.set_values()`) a cada tick, depois de cada `Simulation::run()` — nunca por `add_read_callback`, porque o valor já está pronto, não precisa ser computado sob demanda pela árvore de conexão do servidor.
+
+### 10.6.1. A fronteira real ficou como o usuário desenhou: framework expõe, TEP declara
+
+`opcua_adapter::serve()` não conhece TEP — só itera `simulation.io().sensor_names()`/`actuator_names()`, nomes que já foram declarados por fora. Quem declara é `tep-plant/tennesseeEastman-process/examples/opcua_server.rs`: chama `simulation.add_sensor("TEP/Reactor/Temperature", "reactor.temperature", Box::new(Ideal))` (etc.) e só então `opcua_adapter::serve(simulation, "opc.tcp://0.0.0.0:4840/tep/server/")`. O nome OPC-UA (`"TEP/Reactor/Temperature"`) e a chave do `StateRegistry` (`"reactor.temperature"`) são decisão exclusiva de quem monta a `Simulation` — o adaptador só vê o primeiro.
+
+### 10.6.2. Atuadores: node writable de verdade, com escrita chegando na simulação — via canal, não callback direto
+
+Diferente do que a seção 10.4 previa como hipótese ("não foi implementado porque não há Controlador ainda pra testar contra"), atuadores já têm um caminho de escrita completo: `SimpleNodeManager::add_write_callback` exige `Fn(...) + Send + Sync + 'static`, e `Simulation`/`IoImage`/`StateRegistry` são deliberadamente `Rc<RefCell<_>>` (seção 3.9) — não-Send. O callback registrado não toca em `Simulation` direto: só empurra `(nome, valor)` num `tokio::sync::mpsc::UnboundedSender` (esse sim `Send + Sync`, mesmo sem nada do outro lado ser thread-safe). O `Receiver` fica dentro do mesmo loop de tick que já chama `simulation.run()`, e drena os comandos pendentes (`simulation.io().write(name, value)`) antes de cada passo. Resolve exatamente a pendência que a seção 3.9 tinha deixado em aberto pra escrita — sem precisar tornar `StateRegistry`/`Sensor` thread-safe.
+
+### 10.6.3. Threading: `current_thread` + `LocalSet`/`spawn_local`, não `tokio::spawn`
+
+Como `Simulation` não é `Send`, o loop de tick que chama `simulation.run()`/`simulation.io()` roda via `tokio::task::spawn_local` dentro de um `LocalSet`, nunca `tokio::spawn` (que exige `Send`). O runtime é `#[tokio::main(flavor = "current_thread")]`. Isso não limita o servidor OPC-UA em si — ele é internamente `Arc`/`RwLock` (`Send + Sync`) e funciona igual num runtime `current_thread`; a restrição é só sobre onde o *nosso* código (não-Send) pode rodar. Confirma a leitura da seção 3.9: o servidor OPC-UA agora roda dentro do mesmo processo/thread que fala `Rc<RefCell<StateRegistry>>`, exatamente como esclarecido lá.
+
+### 10.6.4. `IoImage` ganhou `sensor_names()`/`actuator_names()`
+
+Necessário pro adaptador genérico distinguir, sem conhecer TEP, quais nomes viram node read-only e quais viram node writable — `signals()` (seção 10.3) só devolve a lista combinada, insuficiente pra decidir o `access_level` de cada node.
+
+### 10.7. Não fecha a discussão fina de `Sensor::read()`/notificação
+
+Esta seção resolve a fronteira de catálogo/nome e agora também um transporte de rede real — quem publica o quê, sob qual nome, lido/escrito como, e como isso chega a um cliente OPC-UA externo. Não decide (segue em aberto) se `IoImage.read()` deveria virar push/observer em vez de pull dentro do processo, nem se `commit()` deveria notificar assinantes — o adaptador contorna isso com um `interval` de 500ms que simplesmente lê tudo de novo a cada tick, não com um mecanismo de notificação de verdade.

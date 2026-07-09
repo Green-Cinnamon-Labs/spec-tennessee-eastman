@@ -1,0 +1,29 @@
+{
+	"folders": [
+		{
+			"name": "spec-tennessee-eastman",
+			"path": "."
+		},
+		{
+			"name": "simulation-framework",
+			"path": "../simulation-framework"
+		},
+		{
+			"name": "tep-plant",
+			"path": "../tep-plant"
+		},
+		{
+			"name": "tep-ihm",
+			"path": "../tep-ihm"
+		},
+		{
+			"name": "tep-operator",
+			"path": "../tep-operator"
+		},
+		{
+			"name": "tep-supervisor",
+			"path": "../tep-supervisor"
+		}
+	],
+	"settings": {}
+}
