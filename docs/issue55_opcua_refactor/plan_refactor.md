@@ -284,9 +284,9 @@ Implementado em `simulation-framework/src/io_image.rs`, struct `IoImage`. É o l
 
 ### 10.2. Separado de `DynamicModel`, RK4, `StateRegistry` e avaliação hipotética
 
-`io_image.rs` não importa `state_registry` — só conhece `Sensor` (seção 3) como tipo de leitura, e um trait `CommandSink` próprio como tipo de escrita. Quem já resolveu a chave contra o `StateRegistry` (construindo o `Sensor`, seção 3.8) entrega o `Sensor` pronto pra `IoImage.publish_sensor()`; `IoImage` nunca soube nem precisa saber que `StateRegistry`/`Proxy`/`ReadProxy`/`EvaluationState` existem.
+`io_image.rs` não importa `state_registry` — só conhece `Sensor` (seção 3) como tipo de leitura, e um trait `CommandSink` próprio como tipo de escrita. Quem já resolveu a chave contra o `StateRegistry` (construindo o `Sensor`, seção 3.8) entrega o `Sensor` pronto pra `IoImage.register_sensor()`; `IoImage` nunca soube nem precisa saber que `StateRegistry`/`Proxy`/`ReadProxy`/`EvaluationState` existem.
 
-### 10.3. Leitura: `IoImage.publish_sensor(name, sensor)` / `IoImage.read(name)`
+### 10.3. Leitura: `IoImage.register_sensor(name, sensor)` / `IoImage.read(name)`
 
 `IoImage` guarda um `HashMap<String, Sensor>` — publicar é só inserir um `Sensor` já construído sob um nome. `read(name)` chama `Sensor::read()` por trás (mesmo comportamento plugável — ideal/ruído/histerese — da seção 3.6.1), devolvendo `None` se o nome não existir.
 
@@ -310,15 +310,15 @@ Controlador (seção 3.5) não tem implementação ainda. Quando existir, o dese
 
 ### 10.6.1. A fronteira real ficou como o usuário desenhou: framework expõe, TEP declara
 
-`opcua_adapter::serve()` não conhece TEP — só itera `simulation.io().sensor_names()`/`actuator_names()`, nomes que já foram declarados por fora. Quem declara é `tep-plant/tennesseeEastman-process/examples/opcua_server.rs`: chama `simulation.add_sensor("TEP/Reactor/Temperature", "reactor.temperature", Box::new(Ideal))` (etc.) e só então `opcua_adapter::serve(simulation, "opc.tcp://0.0.0.0:4840/tep/server/")`. O nome OPC-UA (`"TEP/Reactor/Temperature"`) e a chave do `StateRegistry` (`"reactor.temperature"`) são decisão exclusiva de quem monta a `Simulation` — o adaptador só vê o primeiro.
+`opcua_adapter::serve()` não conhece TEP — só itera `simulation.io().sensor_names()`/`actuator_names()`, nomes que já foram declarados por fora. ~~Quem declara é `tep-plant/tennesseeEastman-process/examples/opcua_server.rs`~~ **Atualizado:** `tep-plant` não é mais um workspace envolvendo um subcrate — o pacote foi movido pra raiz do repo (`tep-plant/src/`, `tep-plant/Cargo.toml`), e a fiação virou o binário real da aplicação, `tep-plant/src/bin/tep_plant.rs` (`[[bin]] name = "tep-plant"`), rodado via `cargo run --bin tep-plant` — não mais um `examples/*.rs`, já que OPC-UA não é uma demonstração, é a própria aplicação (`tep-plant` roda a simulação e expõe sensores/atuadores; OPC-UA é só a interface externa de hoje). Esse binário chama `simulation.add_sensor("TEP/Reactor/Temperature", "reactor.temperature", Box::new(Ideal))` (etc.) e só então `opcua_adapter::serve(simulation, "opc.tcp://0.0.0.0:4840/tep/server/")`. O nome OPC-UA (`"TEP/Reactor/Temperature"`) e a chave do `StateRegistry` (`"reactor.temperature"`) são decisão exclusiva de quem monta a `Simulation` — o adaptador só vê o primeiro.
 
 ### 10.6.2. Atuadores: node writable de verdade, com escrita chegando na simulação — via canal, não callback direto
 
-Diferente do que a seção 10.4 previa como hipótese ("não foi implementado porque não há Controlador ainda pra testar contra"), atuadores já têm um caminho de escrita completo: `SimpleNodeManager::add_write_callback` exige `Fn(...) + Send + Sync + 'static`, e `Simulation`/`IoImage`/`StateRegistry` são deliberadamente `Rc<RefCell<_>>` (seção 3.9) — não-Send. O callback registrado não toca em `Simulation` direto: só empurra `(nome, valor)` num `tokio::sync::mpsc::UnboundedSender` (esse sim `Send + Sync`, mesmo sem nada do outro lado ser thread-safe). O `Receiver` fica dentro do mesmo loop de tick que já chama `simulation.run()`, e drena os comandos pendentes (`simulation.io().write(name, value)`) antes de cada passo. Resolve exatamente a pendência que a seção 3.9 tinha deixado em aberto pra escrita — sem precisar tornar `StateRegistry`/`Sensor` thread-safe.
+Diferente do que a seção 10.4 previa como hipótese ("não foi implementado porque não há Controlador ainda pra testar contra"), atuadores já têm um caminho de escrita completo: `SimpleNodeManager::add_write_callback` exige `Fn(...) + Send + Sync + 'static`, e `Simulation`/`IoImage`/`StateRegistry` são deliberadamente `Rc<RefCell<_>>` (seção 3.9) — não-Send. O callback registrado não toca em `Simulation` direto: só empurra `(nome, valor)` num canal. ~~`tokio::sync::mpsc::UnboundedSender`~~ **Superado (seção 11.4):** virou `CommandQueue`, sobre `std::sync::mpsc::Sender` — o mecanismo de canal sobreviveu, o tipo concreto e o lado receptor mudaram com a divisão em threads.
 
-### 10.6.3. Threading: `current_thread` + `LocalSet`/`spawn_local`, não `tokio::spawn`
+### 10.6.3. ~~Threading: `current_thread` + `LocalSet`/`spawn_local`, não `tokio::spawn`~~
 
-Como `Simulation` não é `Send`, o loop de tick que chama `simulation.run()`/`simulation.io()` roda via `tokio::task::spawn_local` dentro de um `LocalSet`, nunca `tokio::spawn` (que exige `Send`). O runtime é `#[tokio::main(flavor = "current_thread")]`. Isso não limita o servidor OPC-UA em si — ele é internamente `Arc`/`RwLock` (`Send + Sync`) e funciona igual num runtime `current_thread`; a restrição é só sobre onde o *nosso* código (não-Send) pode rodar. Confirma a leitura da seção 3.9: o servidor OPC-UA agora roda dentro do mesmo processo/thread que fala `Rc<RefCell<StateRegistry>>`, exatamente como esclarecido lá.
+~~Como `Simulation` não é `Send`, o loop de tick que chama `simulation.run()`/`simulation.io()` roda via `tokio::task::spawn_local` dentro de um `LocalSet`... O runtime é `#[tokio::main(flavor = "current_thread")]`.~~ **Superado por completo — ver seção 11.** Não existe mais `LocalSet`/`spawn_local`/`current_thread` em lugar nenhum: a "Thread da planta" e a "Thread do OPC-UA" são duas threads OS de verdade agora, cada uma com seu próprio dono de estado, sem nada não-`Send` cruzando entre elas.
 
 ### 10.6.4. `IoImage` ganhou `sensor_names()`/`actuator_names()`
 
@@ -327,3 +327,74 @@ Necessário pro adaptador genérico distinguir, sem conhecer TEP, quais nomes vi
 ### 10.7. Não fecha a discussão fina de `Sensor::read()`/notificação
 
 Esta seção resolve a fronteira de catálogo/nome e agora também um transporte de rede real — quem publica o quê, sob qual nome, lido/escrito como, e como isso chega a um cliente OPC-UA externo. Não decide (segue em aberto) se `IoImage.read()` deveria virar push/observer em vez de pull dentro do processo, nem se `commit()` deveria notificar assinantes — o adaptador contorna isso com um `interval` de 500ms que simplesmente lê tudo de novo a cada tick, não com um mecanismo de notificação de verdade.
+
+## 11. Sobre `Simulation` como builder — "Thread da planta" separada da "Thread do OPC-UA"
+
+Implementa o desenho de `drawio/dynamicModel.drawio` (aba "arquitetura"): `Simulation` deixou de construir tudo na hora (`new(build) -> Result<Self, String>`) e virou um builder que só guarda definições até `run_model()` — a chamada terminal que de fato cria `StateRegistry`/modelo/`IoImage` e sobe a(s) thread(s).
+
+### 11.1. Por que builder: `Simulation` nunca é `Send`, então nada pode ser construído antes de saber em qual thread vai morar
+
+`Simulation` (uma vez montada) sempre vai guardar algo enraizado em `Rc<RefCell<StateRegistry>>` — impossível de mover pra dentro de uma thread nova depois de já existir (seção 3.9). A única saída é a construção de verdade acontecer *dentro* da thread que vai rodar o tick loop. Por isso `set_model`/`add_sensor`/`add_actuator` não constroem nada — só empacotam o que precisam num `Box<dyn FnOnce(...) + Send>` (ou guardam a especificação crua), porque isso sim pode atravessar a fronteira: uma closure vazia ou que só captura dados `Send` (ex.: `TennesseeEastmanModel::new`, um item de função, é `Send` de graça) cruza sem problema; o que ela *produz* (o modelo, os `Sensor`) nunca precisa ser `Send`, porque nunca sai da thread que os criou.
+
+### 11.2. API pública: `new()`, `set_model()`, `add_sensor()`, `add_actuator()`, `start_opcua_server()`, `run_model()`
+
+```rust
+let mut simulation = Simulation::new();
+simulation.set_model(TennesseeEastmanModel::new);
+simulation.add_sensor("TEP/Reactor/Temperature", "reactor.temperature", Ideal);
+simulation.start_opcua_server("opc.tcp://0.0.0.0:4840/tep/server/");
+simulation.run_model().expect("run_model encerrou com erro");
+```
+
+Quem chama nunca vê `StateRegistry`, `thread::spawn`, canal ou runtime tokio — tudo isso é interno a `run_model()`. `add_sensor` deixou de devolver `Result` (a checagem "essa chave existe?" não pode mais acontecer na hora — só existe `StateRegistry` depois que `run_model()` já rodou); se uma chave não existir, a "Thread da planta" entra em pânico na construção do `Sensor`, e isso vira `Err` no `run_model()` via `.join()` (seção 11.3).
+
+### 11.3. `run_model(self) -> Result<(), String>` — a chamada terminal
+
+Consome a `Simulation` por valor. Dentro de `std::thread::spawn`: cria `StateRegistry::shared()`, chama a `model_factory` guardada, `resolve()`, constrói cada `Sensor`/registra cada `CommandSink` na `IoImage` — só agora, pela primeira vez, esses objetos existem de verdade. Depois entra no loop: drena comandos pendentes → `model.evaluate()` + `registry.commit()` → publica cada sensor no `SnapshotBus` → dorme `tick_interval`. Essa é a "Thread da planta" do `drawio`. Se `start_opcua_server()` foi chamado, uma segunda thread sobe (seção 11.5); `run_model()` bloqueia em `.join()` de uma das duas (hoje sem shutdown gracioso — só pânico vira `Err`).
+
+### 11.4. `SnapshotBus` e `CommandQueue` — as duas únicas pontes thread-safe
+
+Implementados em `snapshot_bus.rs`/`command_queue.rs`, novos, **sem dependência de tokio** (só `std::sync`) — porque `run_model()` os usa incondicionalmente, mesmo sem a feature `opcua`.
+
+- **`SnapshotBus`** (`Arc<RwLock<HashMap<String, f64>>>`): a "Thread da planta" publica (`publish`) o valor de cada sensor a cada tick; qualquer leitor de fora só lê (`read`). Corresponde ao "Sensor Snapshot Bus" do `drawio`.
+- **`CommandQueue`** (`Arc<Mutex<std::sync::mpsc::Sender<(String, f64)>>>`): sentido oposto — quem está fora empurra `(nome, valor)`; a planta drena no início de cada tick. O `Mutex` em volta do `Sender` existe só porque um write callback do OPC-UA exige `Fn(...) + Send + **Sync**` e `Sender` sozinho não é `Sync` — o `Mutex` doa isso, sem custo real (escrita de atuador não é caminho quente). Corresponde à "Command Queue" do `drawio`.
+
+Nenhum dos dois sabe o que é OPC-UA, TEP ou `StateRegistry` — são só uma ponte de dado nomeado numa direção e outra ponte de comando na outra.
+
+### 11.5. `opcua_adapter::serve()` reescrito — não recebe mais `Simulation`
+
+Assinatura nova: `serve(sensor_names: Vec<String>, actuator_names: Vec<String>, snapshot: SnapshotBus, commands: CommandQueue, endpoint: &str)`. Não importa `Simulation`/`IoImage`/`StateRegistry` em lugar nenhum do arquivo — só os nomes (decididos por quem chamou `run_model()`) e as duas pontes. O loop de push lê `snapshot.read(name)` a cada tick; o `add_write_callback` de cada atuador só chama `commands.write(name, value)`.
+
+Consequência prática: **`LocalSet`/`spawn_local`/`current_thread` sumiram** (contradiz a seção 10.6.3, já hachurada) — como nada aqui é `!Send` (`SnapshotBus`/`CommandQueue` são `Send + Sync` de verdade), o loop de push roda em `tokio::spawn` comum, igual ao sample oficial do `async-opcua` (`simple-server`). `run_model()` cria o runtime tokio (`tokio::runtime::Runtime::new()`, multi-thread padrão) só dentro da "Thread do OPC-UA" — o resto do processo nunca vê tokio.
+
+### 11.6. `tep-plant/src/bin/tep_plant.rs`: `main()` virou síncrono
+
+Sem `#[tokio::main]`, sem `async fn main()`, sem `.await` — o binário nunca soube de tokio, e agora isso é literal: `Simulation::run_model()` é a única coisa que cria um runtime, e faz isso internamente. `Cargo.toml` do `tep-plant` perdeu a dependência direta de `tokio` (não é mais usada por lugar nenhum do binário).
+
+### 11.7. Pendência conhecida: `add_actuator` não serve ainda pra sinks que capturam objetos do próprio modelo
+
+`add_actuator(name, sink: impl CommandSink + Send + 'static)` funciona pra sinks que só capturam dados `Send` externos (ex.: um canal, um `Arc<AtomicXxx>`). Não funciona pra algo como `move |v| valve.set_command(v)`, porque `Valve` só existe *depois* que a `model_factory` roda dentro da "Thread da planta" — na hora que `add_actuator()` é chamado (antes de `run_model()`), a `Valve` em questão ainda nem foi construída, então não tem como capturá-la numa closure `Send` guardada de antemão. Hoje isso não trava nada porque nenhum atuador real (`Valve`/`Agitator`) está wireado em `TennesseeEastmanModel` ainda (seção 10.6.4 nota histórica) — mas quando existir, vai precisar de um mecanismo tipo "chave resolvida depois", simétrico ao que `add_sensor` já tem via `key: &str`, em vez de aceitar uma closure pronta.
+
+### 11.8. `DynamicModel` ganhou `sensors()` — o próprio modelo declara o que expõe, não quem monta a `Simulation`
+
+Resolve exatamente a inversão que a seção 11.7 apontava como pendência (ainda em aberto pro lado de atuador): antes, `tep_plant.rs` (o binário) hardcodava os 4 pares `("TEP/Reactor/Temperature", "reactor.temperature")` etc. — desacoplado de onde essas chaves são de fato definidas (dentro de `Reactor`/`Separator`). Bate direto com a seta "DECLARA" do `drawio` (aba "arquitetura"), que sai de `TennesseeEastmanModel`, não de `main()`.
+
+**Mecanismo:** `DynamicModel::sensors(&self) -> Vec<(String, String)>` (nome de exposição, chave do `StateRegistry`), método com corpo default vazio — só quem orquestra (`TennesseeEastmanModel`) sobrescreve; folhas (`Reactor`, `Valve`) não precisam. `TennesseeEastmanModel::new()` ganhou um `add_sensor` inerente (privado, mesma forma de `add_dynamic` — acumula num `Vec<(String, String)>` interno) chamado logo depois dos `add_dynamic`, e `sensors()` devolve esse vetor.
+
+**Onde isso é lido:** `Simulation::set_model()` chama `model.sensors()` **enquanto o tipo ainda é `M` concreto** — antes de virar `Box<dyn DynamicModel>`, que já apagou o acesso a qualquer coisa além do trait. O resultado (`Vec<(String, String)>`, só strings, `Send` de graça) viaja empacotado dentro do próprio `model_factory` erased. Dentro da "Thread da planta" (`run_model()`), esses sensores "do modelo" são fundidos com os que vieram de `add_sensor()` externo (chamado em quem monta a `Simulation`) — os dois convivem, o modelo não é o único jeito de declarar sensor, só o mais natural pros que já pertencem à física dele.
+
+**Efeito colateral que exigiu um handshake novo:** a "Thread do OPC-UA" precisa saber a lista final de nomes de sensor *antes* de montar o address space — mas essa lista só existe depois que `model_factory` rodou, dentro da "Thread da planta". Resolvido com um `std::sync::mpsc::channel::<Vec<String>>()` de mão única (`ready_tx`/`ready_rx`): a planta manda a lista assim que termina de registrar tudo na `IoImage`, e `run_model()` bloqueia nesse `recv()` antes de spawnar a "Thread do OPC-UA" — um handshake pontual, não um canal contínuo como `SnapshotBus`/`CommandQueue`.
+
+**Resultado em `tep_plant.rs`:** o binário não menciona mais `"reactor.temperature"` nem `"TEP/Reactor/Temperature"` em lugar nenhum — só `simulation.set_model(TennesseeEastmanModel::new)` e `simulation.start_opcua_server(...)`. Testado de ponta a ponta (`cargo run --release --bin tep-plant`): porta 4840 abre normalmente, sensores do modelo chegam nos nodes OPC-UA via o mesmo caminho de sempre.
+
+### 11.9. Condição inicial: `initial_state.rs` (rígido) virou `simulation_framework::snapshot::Snapshot` (genérico)
+
+`tep-plant/src/initial_state.rs` existia desde antes desse refactor todo — um struct (`InitialState`/`StateSections`/`Components`/`EnergySection`/...) com um campo Rust por chave do TOML, batendo posição a posição com o array `YY(1..50)` do `teprob.f` original. Ficou claro que isso duplicava, em Rust hardcoded, exatamente o que `StateRegistry::snapshot()` (seção 3.6.5) já sabe produzir sozinho — uma foto nomeada do estado, por string, não por struct fixo. O `te_exp3_snapshot.toml` (`src/cases/`) é literalmente isso: uma foto que a própria planta gerou rodando (`"TEP snapshot at t = 20.0000 h"`, `[meta]`), não uma condição de contorno escrita à mão.
+
+**O que substituiu:** `simulation-framework/src/snapshot.rs`, novo, `pub struct Snapshot`. Não sabe nada de TEP — só carrega um TOML qualquer e achata as tabelas aninhadas em chaves com ponto (`[state.reactor_vapor] A = 1.0` vira `"state.reactor_vapor.A" -> 1.0`), guardadas num `HashMap<String, f64>`. Valores não-numéricos (string, bool, array — ex.: `[meta] description = "..."`) são ignorados, não geram erro. `Snapshot::get(key) -> Option<f64>` é o único jeito de ler; `Snapshot::from_pairs(&[(&str, f64)])` existe só pra teste, sem precisar de arquivo real no disco.
+
+**Quem consome:** `Reactor::new(registry, initial: &Snapshot)` — igual à ideia de `add_sensor`/`sensors()` (seção 11.8), cada subsistema busca só as chaves que interessam pra ele (`"state.reactor_vapor.A"`.."H", `"state.reactor.energy"`), chave ausente vira `0.0` (mesmo default que o slot já teria em `subscribe()`, então não é erro, só "sem condição inicial pra esse componente"). `TennesseeEastmanModel::new(registry, initial: &Snapshot)` repassa o mesmo `&Snapshot` inteiro pro `Reactor` — só ele usa por enquanto; `Separator`/`Stripper`/`Compressor` ainda nascem sem condição inicial nenhuma.
+
+**Efeito na assinatura de `set_model()`:** `TennesseeEastmanModel::new` deixou de caber como ponteiro de função direto (`simulation.set_model(TennesseeEastmanModel::new)`), porque agora tem dois parâmetros. `tep_plant.rs` carrega o `Snapshot` (`Snapshot::from_file("src/cases/te_exp3_snapshot.toml")`) e passa por uma closure: `simulation.set_model(move |registry| TennesseeEastmanModel::new(registry, &initial))` — o `Snapshot` (só um `HashMap<String, f64>`, `Send` de graça) é movido pra dentro da closure, satisfazendo o bound `Send + 'static` que `set_model()` exige (seção 11.1).
+
+**`initial_state.rs` foi apagado** (não só descontinuado) — `serde`/`toml` saíram do `Cargo.toml` do `tep-plant` também, já que nada ali mais parseia TOML diretamente: quem faz isso agora é só o `simulation-framework`, genérico. Testado de ponta a ponta: `tep-plant` carrega `te_exp3_snapshot.toml` de verdade e sobe normalmente.
