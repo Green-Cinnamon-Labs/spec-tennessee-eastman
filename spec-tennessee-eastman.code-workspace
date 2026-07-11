@@ -5,8 +5,8 @@
 			"path": "."
 		},
 		{
-			"name": "simulation-framework",
-			"path": "../simulation-framework"
+			"name": "monjolo",
+			"path": "../monjolo"
 		},
 		{
 			"name": "tep-plant",
@@ -23,6 +23,10 @@
 		{
 			"name": "tep-supervisor",
 			"path": "../tep-supervisor"
+		},
+		{
+			"name": "tep-monografia",
+			"path": "../tep-monografia"
 		}
 	],
 	"settings": {}
