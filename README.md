@@ -17,7 +17,8 @@ capaz de simulação de longo horizonte com controle supervisório integrado via
 
 | Repositório | Papel |
 |---|---|
-| [`tep-plant`](https://github.com/Green-Cinnamon-Labs/tep-plant) | Simulador/Serviço da planta em Rust (gRPC :50051). Contém a dinâmica do processo, integradores numéricos, 3 P-controllers embutidos e os snapshots de estado. |
+| [`tep-plant`](https://github.com/Green-Cinnamon-Labs/tep-plant) | Simulador/Serviço da planta em Rust (gRPC :50051 na `main`; branch `composite` em WIP já migrada para rodar sobre o `monjolo` e expor via OPC-UA). Contém a dinâmica do processo, integradores numéricos, 3 P-controllers embutidos e os snapshots de estado. |
+| [`monjolo`](https://github.com/Green-Cinnamon-Labs/monjolo) | Framework genérico de simulação de sistemas dinâmicos (Rust), extraído do `tep-plant`. Não sabe nada de TEP — fornece composição de modelos dinâmicos, integração numérica (RK4), blocos reaproveitáveis (atuador/sensor/distúrbio) e o adapter OPC-UA que o `tep-plant` (branch `composite`) usa para expor a planta. |
 | [`tep-ihm`](https://github.com/Green-Cinnamon-Labs/tep-ihm) | Dashboard web da planta (IHM). Consome o stream gRPC de XMEAS/XMV em tempo real e expõe visualização em :8080. |
 | [`tep-operator`](https://github.com/Green-Cinnamon-Labs/tep-operator) | Operator Kubernetes (Go/Kubebuilder) que atua como controlador supervisório. Lê XMEAS via gRPC, avalia a política declarada no CRD `PLCMachine` e ajusta controladores quando variáveis saem da faixa. |
 | [`tep-supervisor`](https://github.com/Green-Cinnamon-Labs/tep-supervisor) | Infraestrutura local do lab: `docker-compose` (planta + IHM), cluster Kind (`setup.sh`), manifests K8s e configurações de cloud (AWS/Azure/GCP). |
