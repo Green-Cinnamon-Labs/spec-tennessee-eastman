@@ -1,4 +1,4 @@
-# Tennessee Eastman Digital Twin — Specification
+# Tennessee Eastman CPS — Specification
 
 This repository is the lab's entry point. It contains no code —
 it holds the experiment log, the architecture decisions, and the
@@ -10,8 +10,10 @@ tracking of open tasks that span the other repositories.
 
 ## Objective
 
-Build a deterministic, extensible digital twin of the Tennessee Eastman process,
+Build a deterministic, extensible Cyber-Physical System (CPS) simulating the Tennessee Eastman process,
 capable of long-horizon simulation with supervisory control integrated via Kubernetes.
+
+**Note:** this is a CPS, not a "digital twin" — there is no physical TEP plant this simulator is a twin of. It's a self-contained simulation/control problem (Downs & Vogel, 1993). Avoid the term "digital twin" in new documentation across this lab.
 
 ---
 

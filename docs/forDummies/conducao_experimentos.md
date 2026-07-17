@@ -1,4 +1,4 @@
-# Como conduzir os experimentos — TEP Digital Twin Lab
+# Como conduzir os experimentos — TEP CPS Lab
 
 
 ## 1. Build (quando mudar código)

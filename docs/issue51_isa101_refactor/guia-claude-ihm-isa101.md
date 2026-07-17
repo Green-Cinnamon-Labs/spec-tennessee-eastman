@@ -1,7 +1,7 @@
 # Guia operacional para geração e revisão de telas IHM/SCADA segundo ISA-101
 
 > Documento para uso por IA, especialmente Claude, ao criar, revisar ou refatorar telas de IHM industrial.  
-> Aplicável ao projeto Tennessee Eastman Digital Twin Lab e a interfaces industriais similares.  
+> Aplicável ao projeto Tennessee Eastman CPS Lab e a interfaces industriais similares.  
 > Prioridade: clareza operacional, consciência situacional, consistência e redução de erro do operador.  
 > Não é um guia estético. Não é uma tentativa de deixar a tela “bonita”. É uma especificação de comportamento visual e semântico.
 
@@ -777,7 +777,7 @@ Faceplate é o painel padronizado de uma malha, válvula, controlador ou instrum
 
 ---
 
-## 18. Padrões de tela para o Tennessee Eastman Digital Twin Lab
+## 18. Padrões de tela para o Tennessee Eastman CPS Lab
 
 ### 18.1 Tela Level 1 — Plant Overview
 

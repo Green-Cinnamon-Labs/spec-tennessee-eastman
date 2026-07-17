@@ -1,6 +1,6 @@
 ## Overview
 
-**Tennessee Eastman Digital Twin Lab** — simulação executável da planta química Tennessee Eastman (Downs & Vogel, 1993) com controle supervisório via Kubernetes. Este workspace reúne cinco repositórios com linguagens e papéis distintos.
+**Tennessee Eastman CPS Lab** — simulação executável (Sistema Ciber-Físico, não "digital twin": não há planta física de referência) da planta química Tennessee Eastman (Downs & Vogel, 1993) com controle supervisório via Kubernetes. Este workspace reúne cinco repositórios com linguagens e papéis distintos.
 
 | Pasta                    | Linguagem        | Papel                                                           |
 | ------------------------ | ---------------- | --------------------------------------------------------------- |

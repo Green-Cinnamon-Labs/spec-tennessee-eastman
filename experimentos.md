@@ -1,4 +1,4 @@
-# Registro Científico de Intervenções — TEP Digital Twin
+# Registro Científico de Intervenções — TEP CPS
 
 Registro científico dos experimentos e intervenções.
 

@@ -1,6 +1,6 @@
 # TEP Analysis — Pacote de Análise
 
-Pacote Python para visualização dos CSVs gerados pela simulação do Tennessee Eastman Digital Twin.
+Pacote Python para visualização dos CSVs gerados pela simulação do Tennessee Eastman (um sistema ciber-físico, CPS — não é um "digital twin": não existe planta física de referência).
 
 ## Por que este pacote existe
 
