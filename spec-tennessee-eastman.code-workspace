@@ -23,9 +23,6 @@
 		{
 			"name": "tep-supervisor",
 			"path": "../tep-supervisor"
-		},
-		{
-			"path": "../tep-monografia"
 		}
 	],
 	"settings": {}
