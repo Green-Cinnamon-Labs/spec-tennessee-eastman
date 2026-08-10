@@ -65,6 +65,10 @@ tep-plant (binary)    → Art. 10.6.1, 11.6, 11.9
 
 **Art. 2.3.1.** Default body of `add_dynamic`: `self.models_mut().push(component)` — just the `models_mut()` getter over its own `Vec<Box<dyn DynamicModel>>` (the `models` field, Art. 2.5).
 
+§1 (2026-08-09) `monjolo/src/dynamic_model.rs` gained `impl<T: DynamicModel + ?Sized> DynamicModel for Rc<T>` — lets `Box::new(rc_instance)` satisfy `add_dynamic`'s `Box<dyn DynamicModel>` when `rc_instance: Rc<T>`. Motivation: a component sometimes needs to be the *same instance* both inside the composite (`add_dynamic`'d, participates in `evaluate()`) and outside it, catalogued by name (`StateRegistry::offer_actuator`, `Rc<dyn Actuator>`, Art. 7.1 §1) — without this, the two would need separate copies, and a `Controller` writing to the catalogued copy would never affect the physics actually being integrated. ~~First real use: `tep-plant`'s `"purge"` actuator (`model.rs::build_tep()`) — `Rc::new(actuators::purge(registry))`, one clone `offer_actuator`'d, the original `add_dynamic`'d; `reactor_pressure_control` (Art. 3.5.1 §2's note) reads/writes the live one.~~ `Rc`, not `Arc`: this framework's concrete components are already `!Send` (`Proxy` is `Rc`-based), so `Arc` would promise a thread crossing that doesn't exist. ~~The other 11 actuators aren't `Rc`'d yet — nothing needs them by name today; trivial to add when something does.~~
+
+**Note (2026-08-10):** the `"purge"`-only special case above didn't survive the day — see Art. 7.1 §2's note. `Actuator::new()` itself now always returns `Rc<Self>`, so every actuator (not just the one a controller happens to need) is uniformly both `add_dynamic`-able and catalogue-able from the same call, with no per-actuator decision left to make.
+
 **Art. 2.4.** Delegating evaluation to each child — calling each one's `evaluate()`, in the order `add_dynamic` (Art. 2.3) registered them — is the only part each composite writes from scratch. This only works because the TEP is a DAG (Art. 4.1): a single pass, in fixed insertion order, resolves the composite because there is no algebraic cycle between the components.
 
 §1 For a DAE case (Art. 4.3, strong algebraic coupling), a single pass doesn't close — an object analogous to the `Integrator`, but for the algebraic dimension (an "`Interator`"), would be needed, running the cyclic subset via Newton/tearing (Art. 4.4) until convergence. It doesn't exist and isn't needed for the current TEP — a registered future extension, not an immediate implementation pending item.
@@ -101,7 +105,9 @@ Item III — Dependency order: `Flows` (depends only on the 4 chemical subsystem
 
 §2 (open item) Controller is not yet modeled. ~~Design already anticipated: reads via `IoImage.read()` (Art. 10.3), writes via `IoImage.write()` (Art. 10.4) — without requiring any shape change in `IoImage`.~~ **Note (2026-07-29):** the anticipated mechanism changed along with `IoImage`'s elimination — the direct precedent now is `Sensor`/`Actuator` (Art. 3.6.6, 12.1-12.2): a `Send + Sync` object exported once via `Arc` in the boot handshake, combining a read path (mirroring `Sensor`) and a write path (mirroring `Actuator`). Not implemented because there is no Controller yet to test it against. **Note (2026-08-07):** the anticipated mechanism changed again, and the premise itself is gone. `Actuator` (Art. 12.1) is a bare trait now, `fn write(&self, value: f64)`, the same one-method shape as `Sensor` (Art. 3.6) — mirrored, not a shared base type, and neither is `Send + Sync` by any framework guarantee (that's on whatever implements them). There is also no boot handshake left to export anything through (Art. 11's note) — `Simulation` doesn't catalog sensors/actuators for an adapter thread anymore, because it doesn't have an adapter thread anymore. Whatever eventually exposes a `Controller` to the outside is an open question again, not a solved-but-unbuilt one — see Art. 11.8's note.
 
-**Note (2026-08-09):** `Controller` (`pub trait Controller {}`) is still completely unchanged, on purpose — no `step()`/`update()`, no execution frequency, no scheduler, still an open item. What did change: `StateRegistry` can now register a `Controller` for discovery (`offer_controller(name, Rc<dyn Controller>)`, Art. 6.3 §1/7.1 §1) — pure catalog, no `need_controller`, since nothing depends on looking one up by name today. A concrete controller resolves its *own* dependencies on named `Sensor`/`Actuator`s through the ordinary `need_sensor`/`need_actuator` any other consumer would use, at its own construction time — the trait itself doesn't need to know this mechanism exists, exactly as `DynamicModel` doesn't know `Proxy`/`subscribe()` exist. Deliberately not solved by this: how a second thread (an OPC-UA adapter) would ever reach `offer_controller`'s catalog — `Rc<dyn Controller>` cannot cross a thread boundary, by construction (Art. 12.1 §1's note). That remains as open as the rest of Art. 11.8's note.
+~~**Note (2026-08-09):** `Controller` (`pub trait Controller {}`) is still completely unchanged, on purpose — no `step()`/`update()`, no execution frequency, no scheduler, still an open item. What did change: a concrete generic implementation now covers the other half, `monjolo::controller::model::Controller` (mirroring `sensor/model.rs`/`actuator/model.rs` — trait in `mod.rs`, concrete generic type in a sibling `model.rs`, same name, disambiguated by path). It holds named `Sensor`/`Actuator` dependencies, declared at construction via the ordinary `StateRegistry::need_sensor()`/`need_actuator()` any other consumer would use (`Controller::new(registry, &["reactor_pressure"], &["purge"])`), resolved by the same `resolve()` call as everything else — `impl super::Controller for Controller {}` is the entire trait conformance, the marker trait itself still doesn't know this mechanism exists. `StateRegistry` also registers a `Controller` for discovery (`offer_controller(name, Rc<dyn Controller>)`, Art. 6.3 §1/7.1 §1) — pure catalog, no `need_controller`, since nothing depends on looking one up by name today. First real instance: `tep-plant/src/subsystems/controllers.rs::reactor_pressure_control()` — declares it needs the `"reactor_pressure"` sensor and the `"purge"` actuator, nothing else; no control logic runs, `.sensor("reactor_pressure")`/`.actuator("purge")` just hand back the resolved handles for whenever `step()` exists to call them.~~ Deliberately not solved by this: how a second thread (an OPC-UA adapter) would ever reach `offer_controller`'s catalog — `Rc<dyn Controller>` cannot cross a thread boundary, by construction (Art. 12.1 §1's note). That remains as open as the rest of Art. 11.8's note.
+
+**Note (2026-08-10):** `Controller` the trait is still exactly `pub trait Controller {}` — that part of the note above still holds, only the constructor signature and the example changed (Art. 7.1 §2's note): `Controller::new(registry, name, sensors, actuators) -> Rc<Controller>` — gained `name` (its own catalog identity; unlike `Sensor`/`Actuator` it has no single `key` to reuse for that) and now calls `offer_controller(name, ...)` on itself, returning the same `Rc` it catalogued. `sensors`/`actuators` are no longer short aliases either — they're the real `StateRegistry` keys (Art. 7.1 §2's note applies the same way to `Sensor`/`Actuator`), so `reactor_pressure_control()`'s call is `Controller::new(registry, "reactor_pressure_control", &["reactor.pressure"], &["valve.purge.position"])`.
 
 **Art. 3.6.** `Sensor` has no relationship with `evaluate()`/`EvaluationState` (Art. 8) — those are written to by the `DynamicModel`s resolving their own physics, at each RK4 sub-step. `Sensor` reads from `StateRegistry.CurrentState` (Art. 1.3): the already-committed store, after `set_current_state()` has closed the step. `Sensor` is never a participant in evaluation, it only observes what is already final.
 
@@ -127,7 +133,7 @@ Item III — Dependency order: `Flows` (depends only on the 4 chemical subsystem
 
 **Art. 3.7.1.** `Sensor` is agnostic to the signal's physical type. There is no `FI`/`PI`/`LI`/`TI`/`AI` as distinct types — an approach that existed in the earlier codebase (one struct per physical quantity, all with the same body) and was abandoned. What varies between sensors is the read behavior (Art. 3.6.1), not the physical quantity measured.
 
-**Art. 3.8.** ~~`Sensor` declaration is explicit, done by whoever assembles the plant/simulation — never automatic or implicit in the dynamics itself. It can only be constructed after every `DynamicModel` has called `subscribe()` and the general `StateRegistry::resolve()` has already run (Art. 9.2) — never alongside the `add_dynamic` calls (Art. 2.3) in the model's composition. Reason: `Sensor::new()` resolves the key against `CurrentState` exactly once, on the spot (Art. 3.6.2/3.6.4), with no second resolution phase like `Proxy::unresolved` has for `needs` (Art. 6.2) — if the key doesn't yet exist in `index` at that moment, it's an error (`Result<Self, String>`). This lines up with `Simulation`'s instantiation (Art. 9), not with the composite model's constructor.~~ **Note (2026-08-09):** the reason above no longer holds — `ReadProxy` gained the same second resolution phase `Proxy::unresolved` already had for `needs` (Art. 7.1's note). `Sensor::new(registry: &mut StateRegistry, key, behavior) -> Self` now calls `StateRegistry::subscribe_read(&[key])`, declaring the need immediately and returning an unresolved `ReadProxy` — no longer fallible at construction, no longer order-dependent. `Sensor` declaration is still explicit (nothing changed about *that* — no automatic/implicit discovery was added), but it can now happen anywhere in the declare phase, including alongside `add_dynamic` calls in the composite's constructor — the same declare → register → resolve → inject cycle `DynamicModel`/`Proxy` already used.
+**Art. 3.8.** ~~`Sensor` declaration is explicit, done by whoever assembles the plant/simulation — never automatic or implicit in the dynamics itself. It can only be constructed after every `DynamicModel` has called `subscribe()` and the general `StateRegistry::resolve()` has already run (Art. 9.2) — never alongside the `add_dynamic` calls (Art. 2.3) in the model's composition. Reason: `Sensor::new()` resolves the key against `CurrentState` exactly once, on the spot (Art. 3.6.2/3.6.4), with no second resolution phase like `Proxy::unresolved` has for `needs` (Art. 6.2) — if the key doesn't yet exist in `index` at that moment, it's an error (`Result<Self, String>`). This lines up with `Simulation`'s instantiation (Art. 9), not with the composite model's constructor.~~ **Note (2026-08-09):** the reason above no longer holds — `ReadProxy` gained the same second resolution phase `Proxy::unresolved` already had for `needs` (Art. 7.1's note). ~~`Sensor::new(registry: &mut StateRegistry, key, behavior) -> Self`~~ **Note (2026-08-10):** `Sensor::new(...) -> Arc<Self>` now (Art. 7.1 §2's note — it catalogues itself under `key` before returning). The rest of this note's claim still holds unchanged: it calls `StateRegistry::subscribe_read(&[key])`, declaring the need immediately and returning an unresolved `ReadProxy` — no longer fallible at construction, no longer order-dependent. `Sensor` declaration is still explicit (nothing changed about *that* — no automatic/implicit discovery was added), but it can now happen anywhere in the declare phase, including alongside `add_dynamic` calls in the composite's constructor — the same declare → register → resolve → inject cycle `DynamicModel`/`Proxy` already used.
 
 **Art. 3.9.** (repealed, see Art. 10.1 and Art. 11.1, 2026-07-09/2026-07-10)
 
@@ -180,6 +186,8 @@ Item III — Dependency order: `Flows` (depends only on the 4 chemical subsystem
 **Art. 7.1.** `Proxy` is a handle shared between a `DynamicModel` and the `StateRegistry`, of the "resolved once, used forever" kind (in practice, something like `Rc<Cell<usize>>`). It is born unresolved; the `StateRegistry`, during `resolve()` (Art. 6.3), writes the real index into it. From then on, every clone of that `Proxy` sees the resolved index, with no need to look it up again.
 
 §1 (2026-08-09) The same "born unresolved, patched in place by `resolve()`" trick now has three more implementors on `StateRegistry`, all following the identical shape (a shared catalog `Vec` + a shared sentinel cell holding `usize::MAX` until resolved): `ReadProxy` (`index: Arc<AtomicUsize>` — `Arc`, not `Rc`, because it must cross threads, same reason `Sensor` is `Send + Sync`; resolved against the same `index: HashMap<String, usize>` `Proxy` already uses, one namespace for raw state, not two), `SensorHandle` (`Rc<RefCell<Vec<Arc<dyn Sensor>>>>` + `Rc<Cell<usize>>`, resolved against a separate `sensor_index`), and `ActuatorHandle` (same shape, `Rc<RefCell<Vec<Rc<dyn Actuator>>>>` — `Rc`, not `Arc`: see Art. 12.1's note on why `Actuator` implementors aren't actually `Send + Sync`). All three are patched by the same single `StateRegistry::resolve()` call, not a second resolution step.
+
+§2 (2026-08-10) `offer_sensor`/`offer_actuator`/`offer_controller` went from `pub` to `pub(crate)` — whoever assembles the plant no longer calls them at all. `Sensor::new()`/`Actuator::new()`/`Controller::new()` (`sensor/model.rs`/`actuator/model.rs`/`controller/model.rs`) each call the matching `offer_*` on themselves internally, under their own `key` (or `name`, for `Controller`, which gained that parameter for exactly this reason — it has no single key of its own the way `Sensor`/`Actuator` do), and return the same `Arc`/`Rc` they just catalogued — `Arc<Sensor>`/`Rc<Actuator>`/`Rc<Controller>`, not the bare value. "Constructed" and "catalogued" are the same event now, not two steps a caller could get out of sync — there is no longer a way to build one of these three without it also being findable by name. `need_sensor`/`need_actuator` stay `pub`: asking to consume something already catalogued doesn't carry the same risk, since it can't put anything *into* the catalog under the wrong name.
 
 **Art. 7.2.** `Proxy` is agnostic to whether a value is "hypothetical" or "real" — it only addresses a position; what exists *inside* that position (an intermediate guess from an iterative solver/Newton, Art. 4.4, or an already-converged value) is another layer's concern.
 
@@ -413,7 +421,11 @@ pub struct Actuator {
     derivative: Proxy,
     dynamics: Box<dyn Fn(f64, f64) -> f64>,
 }
+```
 
+Outdated as of 2026-08-10 (kept for the record, see the corrected version right after):
+
+```rust
 impl Actuator {
     pub fn new(
         registry: &mut StateRegistry,
@@ -425,7 +437,27 @@ impl Actuator {
         Self { command: Cell::new(0.0), state: offered[0].clone(), derivative: offered[1].clone(), dynamics: Box::new(dynamics) }
     }
 }
+```
 
+**Note (2026-08-10):** `new()` above returned the bare value; now it returns `Rc<Self>` and catalogues itself first (Art. 7.1 §2's note):
+
+```rust
+impl Actuator {
+    pub fn new(
+        registry: &mut StateRegistry,
+        key: &str,
+        dynamics: impl Fn(f64, f64) -> f64 + 'static,
+    ) -> Rc<Self> {
+        let derivative_key = format!("{key}.derivative");
+        let (offered, _) = registry.subscribe(&[key, &derivative_key], &[]);
+        let actuator = Rc::new(Self { command: Cell::new(0.0), state: offered[0].clone(), derivative: offered[1].clone(), dynamics: Box::new(dynamics) });
+        registry.offer_actuator(key, actuator.clone());
+        actuator
+    }
+}
+```
+
+```rust
 impl super::Actuator for Actuator {  // the monjolo::actuator::Actuator trait, Art. 12.1
     fn write(&self, value: f64) {
         self.command.set(value);
