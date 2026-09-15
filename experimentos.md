@@ -8,6 +8,111 @@ O experimento mais recente aparece primeiro.
 
 
 
+## Experimento 23 — Auditoria formula-a-fórmula contra `v1.0.0`: achado e corrigido um segundo bug de água de resfriamento do reator
+
+**Data:** 2026-09-15 — **Concluído (bug real corrigido; root cause principal ainda aberto)**
+
+**Issue:** continuação da investigação de spec-tennessee-eastman#71 (sem issue própria — correção
+pontual descoberta no processo de auditoria pedido pelo usuário)
+
+### Observação
+
+Depois do Exp 21 localizar a janela onde a divergência começa (mensurável já no tick 10, ~0.003h),
+faltava uma comparação DIRETA, fórmula a fórmula, de todos os números físico-químicos usados por
+`tep-plant` contra o código `v1.0.0` (a última versão monolítica, historicamente validada) — os Exp
+19/20 só tinham testado CADA unidade num único ponto nominal, o que não pega um bug que só aparece
+fora desse ponto específico.
+
+### Hipótese
+
+Se `physical_state()`/`heat_exchange()` de `Reactor` estiverem genuinamente corretos, alimentá-los
+com o estado EXATO de qualquer tick de `docs/simulations/simulation_log_13.csv` (a trajetória real
+validada) deveria reproduzir a medida EXATA (`XMEAS(7)`/`XMEAS(9)`/`XMEAS(21)`) que a planta validada
+teve naquele mesmo instante — não só no ponto nominal do Exp 19, mas em QUALQUER ponto da trajetória.
+
+### Intervenção
+
+**Parte 1 — teste multi-ponto.** Novo teste em `tep-plant/src/units/reactor.rs`:
+`physical_state_and_heat_exchange_match_the_validated_csv_at_many_points_along_the_real_trajectory`.
+Para cada um dos primeiros 200 ticks do CSV, constrói um `Reactor` com o estado exato (`YY[0..8]`),
+chama `physical_state()`, converte a pressão pra escala XMEAS, chama `heat_exchange()` com
+`XMV(10)`/`XMV(12)` do mesmo tick, e compara os três resultados contra `XMEAS(9)`/`XMEAS(7)`/
+`XMEAS(21)` daquele tick.
+
+**Parte 2 — auditoria de constantes.** Comparação byte-a-byte de `tep-plant/src/physics/
+constants.rs` (massas molares, Antoine, densidade líquida, entalpia líquida/vapor, calor de
+vaporização) contra `tennessee-eastman-service/core/src/dynamics/tep/constants.rs` na tag `v1.0.0`
+(`git show v1.0.0:...`) — idênticas.
+
+**Parte 3 — re-derivação bloco a bloco.** Releitura completa de `tennessee-eastman-service/core/
+src/dynamics/tep/model.rs` (821 linhas, `v1.0.0`, a função `derivatives()` monolítica original) e
+comparação linha a linha de CADA fórmula usada por `Reactor`/`Separator`/`Compressor`/`Stripper`
+atuais contra os blocos correspondentes (13-40) — flash+cinética, trocas térmicas, vazões
+dirigidas por válvula/pressão, split do stripper, balanços de massa/energia. Também os 12 valores de
+`tau` (constante de tempo de 1ª ordem dos atuadores) contra `VTAU` (Block 40 tail) do original.
+
+### Resultado
+
+**Parte 1** revelou um viés real e sistemático: com `REACTOR_COOLING_WATER_INLET=35.0`, `twr`
+calculado ficava consistentemente **0.78 a 1.06°C ABAIXO** do `XMEAS(21)` real em TODOS os 200 ticks
+— muito acima do ruído de medição de `XMEAS(21)` (σ=0.01°C, Block 37/`XNS` de `v1.0.0`). Temperatura
+(`ΔT` máx. 0.029°C) e pressão (`ΔP` máx. 0.92 kPa) do reator, por outro lado, já batiam dentro do
+ruído esperado (σ=0.01°C e σ=0.3 kPa respectivamente) — ou seja, `physical_state()` (flash+cinética)
+já estava correto; o problema estava isolado em `heat_exchange()`.
+
+Resolvendo `twr_implícito` (qual `tcwr` faria `twr` bater exatamente com `XMEAS(21)`, usando o
+próprio `uar`/`cw_capacity` já calculados) deu uma média de **37.98°C** ao longo dos 200 ticks — não
+perto de 35.0. Relendo o comentário ORIGINAL do Block 32 em `v1.0.0` (`model.rs`, já lido nesta
+investigação antes, mas o detalhe passou despercebido): `// cpcw_eff=0.00942 calibrated to yield
+twr≈94.6°C at nominal (tcwr=38.5, tcr=120, fcwr=41.1, uar=0.856)` — o PRÓPRIO autor do código
+original documentou `tcwr=38.5` como o valor usado pra calibrar a constante `cpcw_eff`. `tep-plant`
+usava 35.0 — o `s_zero` do canal de distúrbio 4 de `TepDisturbanceState` (uma constante DIFERENTE:
+condição inicial do canal de distúrbio, não o valor nominal documentado na calibração do Block 32).
+
+Corrigido `REACTOR_COOLING_WATER_INLET` de 35.0 para **38.5** (`reactor.rs`). Resultado: `twr` máx.
+Δ caiu de 1.06°C pra **0.33°C** — redução de ~3x, o residual explicado por erros de segunda ordem já
+esperados (pequenos ΔT/ΔP se propagando não-linearmente por `uar`).
+
+**Parte 2** confirmou as constantes químicas idênticas — zero divergência.
+
+**Parte 3** confirmou TODAS as fórmulas de `Separator`/`Compressor`/`Stripper` (incluindo as duas
+peculiaridades sutis já conhecidas — `hst[9]=hst[8]` pré-correção do Block 24, e `cpdh` calculado
+com o `flms` PRÉ-anti-surge mas dividido pelo `ftm[8]` PÓS-anti-surge no `Compressor`) idênticas ao
+original, e os 12 `tau` de atuador idênticos a `VTAU`. Nenhuma outra discrepância encontrada.
+
+**Impacto na trajetória completa:** re-rodando o teste do Exp 21
+(`diverges_from_the_validated_baseline_csv_early_not_gradually`) com a correção, o primeiro tick que
+ultrapassa o limiar de divergência (2°C/20kPa) foi de **tick 200 pra tick 310** (`t_h` 0.056h →
+0.086h) — quase **+55% de sobrevida** antes de violar a tolerância. Mas a natureza da divergência
+MUDOU de direção: antes a temperatura caía abaixo do nominal; agora ela SOBE acima (122°C no tick
+300, chegando a um pico de ~128.8°C por volta de `t_h≈0.33h` no teste de 3500 ticks), antes de
+eventualmente também colapsar (caindo a ~61°C, pressão subindo a ~4000+ kPa por `t_h≈0.96h`) — mesma
+assinatura qualitativa de sempre (reação desacelera, gás não reagido se acumula, ISD), só que num
+horizonte de tempo maior e com o sinal do viés inicial invertido.
+
+### Conclusão
+
+**Um segundo bug real de água de resfriamento do reator, confirmado e corrigido** — não por
+inspeção visual (como os dois bugs do Exp 18), mas por comparação numérica direta e reproduzível
+contra a trajetória validada, ponto a ponto. A correção tem impacto mensurável e positivo (adia a
+divergência em ~55%), mas **não é a causa raiz completa**: a divergência ainda ocorre, agora com o
+reator SOBRE-aquecendo em vez de sub-resfriando, o que sugere um segundo fator, de sinal oposto e
+provavelmente menor magnitude, ainda presente em algum lugar não coberto por esta auditoria (a
+auditoria cobriu TODA fórmula de física de unidade e todo `tau` de atuador — o que sobra fora do
+escopo checado aqui é: a semântica exata de `Actuator`/`Controller` fase (B)/(C) já levantada como
+área menos explorada no Exp 22, e a possibilidade de mais algum canal de `TepDisturbanceState` com
+`s_zero` incorreto — só o canal 4 (TCWR) foi auditado a fundo aqui).
+
+**Próximo passo:** repetir a mesma técnica do teste multi-ponto desta Exp 23 (alimentar
+`physical_state()`/`heat_exchange()` com estado exato do CSV, comparar contra `XMEAS`) pra
+`Separator`/`Compressor`/`Stripper` — a auditoria de fórmula (Parte 3) confirma que o CÓDIGO bate
+com `v1.0.0`, mas não confirma que os poucos valores "congelados" restantes (como
+`SEPARATOR_COOLING_WATER_RETURN`, já confirmado correto no Exp 18, mas potencialmente outros ainda
+não escrutinados da mesma forma) reproduzem a trajetória real tão de perto quanto `Reactor` agora
+reproduz.
+
+---
+
 ## Experimento 22 — Enxergar a ordem de execução real do `sort_phase_a`
 
 **Data:** 2026-09-15 — **Concluído e FECHADO** — hipótese de ordem refutada; auditoria de semântica
