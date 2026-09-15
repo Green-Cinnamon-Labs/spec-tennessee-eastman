@@ -8,6 +8,547 @@ O experimento mais recente aparece primeiro.
 
 
 
+## Experimento 22 — Enxergar a ordem de execução real do `sort_phase_a`
+
+**Data:** 2026-09-15 — **Concluído e FECHADO** — hipótese de ordem refutada; auditoria de semântica
+de `#[need]` sem discrepância; bug real de priming do `CurrentState` encontrado e corrigido (não é
+a causa raiz da divergência, mas é uma correção de framework válida por si)
+
+**Issue:** https://github.com/Green-Cinnamon-Labs/spec-tennessee-eastman/issues/71 (fechada — o
+artefato de ordem de execução foi implementado como planejado, e o bug de priming encontrado ao
+usá-lo está documentado e corrigido, ver "Continuação" abaixo)
+
+### Observação
+
+O Exp 21 descartou instabilidade numérica (o `dt_hours` atual é mais fino que o `dt` historicamente
+validado, não mais grosso) e confirmou que a divergência é rápida e sistemática (mensurável já nos
+primeiros ~10-200 ticks, crescendo suave desde o início — assinatura de viés pequeno e consistente,
+não de bug pontual nem de ruído numérico). Lendo `monjolo/state_registry.rs` diretamente, confirmamos
+que todo `Proxy` (o que `#[need]`/`#[offer]` usa) lê/escreve exclusivamente em `EvaluationState` — um
+único buffer mutável compartilhado por toda a árvore, sem versionamento por sub-chamada de
+`evaluate()`. Isso significa que a ORDEM em que `sort_phase_a` (`monjolo/component.rs`) sequencia as
+tarefas dentro de uma mesma chamada de `evaluate()` é uma propriedade crítica de corretude: se uma
+tarefa lê uma chave antes de quem a oferece ter rodado NESSA MESMA chamada, ela recebe um valor
+"atrasado" — sobra de uma chamada anterior de `evaluate()` (um sub-passo de RK4 diferente, ou o tick
+inteiro anterior). É exatamente esse tipo de atraso sistemático e pequeno que produziria o padrão
+observado no Exp 21.
+
+Só que, até agora, ninguém nunca viu de fato qual ordem `sort_phase_a` escolhe pra essa planta —
+só dá pra inferir lendo `#[need]`/`#[offer]` de cada arquivo à mão e reconstruindo o grafo
+mentalmente, exatamente o que esta investigação vem fazendo sem garantia de estar completa ou
+correta.
+
+### Hipótese
+
+Se `monjolo` produzir um artefato concreto mostrando a ordem de execução real escolhida — qual
+tarefa roda antes de qual, dentro de uma chamada de `evaluate()`, com seus `#[need]`/`#[offer]` — dá
+pra conferir diretamente (sem inferência manual) se essa ordem respeita "produtor sempre antes de
+consumidor, dentro da mesma chamada", a mesma garantia que o código monolítico original tinha por
+construção (Blocos 13→40 do `teprob.f`, sempre na mesma ordem fixa, escrita à mão). Se alguma tarefa
+aparecer na ordem ANTES de quem oferece uma chave que ela `#[need]`, a hipótese do Exp 21 (leitura
+atrasada de `EvaluationState`) fica confirmada, com o par produtor/consumidor exato identificado.
+
+### Intervenção
+
+Capacidade nova em `monjolo` (issue [#71](https://github.com/Green-Cinnamon-Labs/spec-tennessee-eastman/issues/71)), não um hack pontual desta investigação. Implementada:
+
+- `monjolo::phase_a_execution_order() -> Vec<&'static ComponentDescriptor>` (`monjolo/component.rs`)
+  — reexecuta a MESMA coleta+`sort_phase_a` que `attach_discovered_components` já fazia por dentro,
+  mas sem construir nada: `name`/`after`/`needs`/`offers` são todos `&'static`, já existem completos
+  assim que o binário termina de linkar — não precisa de `StateRegistry`/`Snapshot`/planta nenhuma,
+  só de `inventory::iter()`. Chamável de qualquer lugar.
+- `monjolo::describe_phase_a_execution_order() -> String` — formata a ordem acima como texto
+  simples, uma tarefa por linha numerada, com `needs`/`offers`.
+- `Runtime::bootstrap()` (`monjolo/runtime.rs`) escreve isso em `execution_order.txt`, na raiz do
+  projeto, TODA VEZ que o binário sobe — o artefato aparece sozinho assim que o usuário builda e
+  roda, sem passo manual nenhum, sem bloquear o boot se a escrita falhar (é diagnóstico, não
+  dependência funcional).
+- Teste permanente em `tep-plant/src/lib.rs`,
+  `phase_a_execution_order_never_reads_a_key_before_whoever_offers_it` — usa o artefato acima pra
+  checar automaticamente: pra cada tarefa, pra cada chave em `needs`, quem `offers` essa chave
+  aparece ANTES dela na lista? Falha nomeando o par exato se não.
+
+### Resultado
+
+`execution_order.txt` gerado com sucesso ao rodar `tep-plant` (confirmado: 36 tarefas da fase (A),
+16.7 KB). O teste automático rodou contra a ordem REAL, de verdade descoberta via `inventory` —
+**zero violações**. Toda tarefa que `#[need]` uma chave tem, sem exceção, o `#[offer]` dessa chave
+rodando ANTES dela na mesma lista (ex.: `Reactor::physical_state` na posição 4, sem `needs`;
+`Separator::physical_state` na posição 5, `needs: ["reactor.temperature"]`, oferecido pela posição
+4 — ordem correta).
+
+### Conclusão
+
+**Hipótese REFUTADA.** `sort_phase_a` está escolhendo uma ordem correta — nenhuma tarefa lê uma
+chave antes de quem a oferece ter rodado na mesma chamada de `evaluate()`. Isso elimina "ordem de
+avaliação entre unidades" como causa da divergência vista nos Exp 18/21, depois de eliminar também
+"erro de fórmula isolada" (Exp 19/20) e "instabilidade numérica do integrador" (Exp 21). As três
+hipóteses mais fortes que a investigação levantou até aqui foram todas, uma a uma, descartadas com
+evidência concreta — o que sobra é menos óbvio: ou uma chave que DEVERIA ser um `#[need]` declarado
+não está sendo declarada (um acoplamento real existe no código, mas não aparece no grafo que
+`sort_phase_a` enxerga — invisível a este teste por definição, já que ele só audita o que está
+declarado), ou a divergência nasce de algo fora da fase (A) inteiramente (`Actuator`/`Controller`,
+fases (B)/(C), nunca auditadas nesta investigação).
+
+**Auditoria manual de semântica de `#[need]` (continuação, mesmo dia):** antes de investigar
+fases B/C, comparou-se manualmente cada `#[need]` do caminho crítico reator↔separador↔compressor↔
+stripper (visível em `execution_order.txt`) contra os blocos exatos do `teprob.f`/`v1.0.0` que cada
+um substitui — incluindo dois casos que facilmente esconderiam um bug: `hst[9]=hst[8]` (Block 21,
+ANTES da correção do compressor no Block 24 — `Separator::mass_and_energy_balance` recalcula
+`enthalpy_separator_vapor_uncorrected` fresco, batendo exatamente com essa pegadinha do FORTRAN
+original) e `FEED_TEMPERATURE=45.0` compartilhado entre D/E/A feed (confirmado contra
+`initial_tst()` do `v1.0.0`: as 4 correntes realmente começam todas em 45°C — não é bug). **Zero
+discrepâncias encontradas** — mais uma hipótese descartada com evidência concreta.
+
+### Continuação — Controllers (fase C) e um bug REAL encontrado (e corrigido) que ainda não é a causa
+
+Investigação seguinte, pedida diretamente pelo usuário ("como estão os controladores comparados à
+v1.0.0?"), depois de notar que `execution_order.txt` só lista a fase (A) — fases (B)/(C) nunca
+tinham sido auditadas.
+
+**Hipótese inicial (refutada por verificação própria):** suspeita de que `Controller` (fase C),
+por rodar em TODA chamada de `evaluate()` (a mesma árvore `Composite` que o RK4 reavalia a cada
+sub-passo k1-k4, ~5x por tick — confirmado: `Composite::evaluate_children()` não faz distinção
+nenhuma entre "tick de verdade" e "sub-passo hipotético do RK4"), estaria recalculando o comando de
+válvula usando leituras intermediárias e fisicamente fictícias do RK4. Verificação direta de
+`#[sensor(key=...)]` (usado por todo `Controller`) mostrou o contrário: `Sensor::read()`
+(`sensor/model.rs:82-93`) lê via `ReadProxy` sobre **CurrentState**, cacheado por `generation` — que
+só avança em `commit()`, uma vez por tick. Ou seja, todas as ~5 chamadas de um controlador dentro de
+um mesmo tick leem o MESMO valor (idêntico ao original: `mv` congelado durante toda a integração RK4
+de um tick). Rodar 5x é ineficiente, mas não corrompe nada — **hipótese descartada por verificação
+própria antes de qualquer correção precipitada**.
+
+**Bug real encontrado ao verificar essa hipótese:** `CurrentState` começa **vazia**
+(`state_registry.rs:306-309`, `values: Vec::new()`) e só é populada dentro de `commit()`
+(`values.resize(eval.len(), 0.0)` + cópia). `commit()` só é chamado UMA vez, no fim do laço de tick
+(`simulation.rs`), NUNCA antes do laço começar. Teste direto em `monjolo`
+(`read_before_any_commit_ever_happened`) confirmou: `Sensor::read()` chamado antes de qualquer
+`commit()` **não panica — devolve `0.0` silenciosamente**. Como `Controller` roda desde a
+PRIMEIRÍSSIMA chamada de `evaluate()` do processo (dentro do primeiro `integrator.step()`, antes de
+existir qualquer `commit()`), os 3 controladores da planta leem pressão/nível como `0.0` no tick 0 —
+e `clamp(bias + kp*(0 - setpoint), 0, 100)` satura no piso pra qualquer setpoint positivo, comandando
+as 3 válvulas controladas pra **0%** logo de cara.
+
+Confirmado ao vivo com um teste novo em `tep-plant`
+(`first_tick_control_command_uses_precommit_zero_sensor_reading`): `valve.purge.position` (seed
+`39.070%`) termina o PRIMEIRO tick em `33.053%` — um deslocamento de **-6.02 pontos percentuais**
+num único segundo simulado, na direção errada (fechando), antes de o controle ter qualquer chance de
+ler um valor real.
+
+**Correção aplicada** (`monjolo/simulation.rs::spawn_plant_thread`): dois `evaluate()` com um
+`commit()` entre eles, ANTES do laço de tick começar — o primeiro `evaluate()`+`commit()` populam
+`CurrentState` com os valores físicos reais (semeados via `#[config(...)]`); o segundo `evaluate()`
+roda os `Controller`s de novo, agora lendo `CurrentState` de verdade, deixando `Actuator::command`
+correto antes do primeiro tick de verdade começar. Nenhum `#[state]` muda de valor (evaluate() nunca
+escreve estado sozinho), então repetir isso duas vezes é seguro. Confirmado: com a correção, o
+mesmo teste mostra deslocamento de `+0.00046` pontos — essencialmente zero, como esperado.
+
+**Resultado ao rodar a trajetória inteira (Exp 21) com a correção:** praticamente **idêntica** à
+trajetória sem a correção — mesma forma, mesmo colapso, divergindo do CSV de referência no mesmo
+tick 200 (`Δ=2.005°C`, contra `2.007°C` sem a correção), colapso numérico ~meia dúzia de ticks
+diferente (2403 em vez de 2900, dentro do esperado por sensibilidade caótica a uma perturbação
+mínima de sétima casa decimal, não uma mudança de mecanismo).
+
+**Conclusão desta continuação:** o bug do priming é REAL, CONFIRMADO, e CORRIGIDO — vale a correção
+por si (é uma correção de framework em `monjolo`, não só desta investigação), e a suspeita original
+de "controladores recalculando com RK4 intermediário" foi corretamente descartada por verificação
+antes de qualquer correção precipitada. Mas nenhum dos dois — nem o bug real, nem a suspeita
+refutada — explica a divergência principal que a investigação persegue desde o Exp 18: a trajetória
+com a correção diverge da mesma forma, no mesmo lugar. **Seis hipóteses agora eliminadas com
+evidência concreta** (fórmulas isoladas, integração/`dt`, ordem de `sort_phase_a`, semântica de
+`#[need]`, timing de Controllers, e agora o priming de `CurrentState`) — nenhuma delas era a causa
+raiz. A fase (B) — Atuadores — e a fase (C) além do que já foi coberto aqui, seguem como as áreas
+menos exploradas.
+
+**Próximo passo:** com ordem, fórmulas e integração descartados, a busca deveria ir pro conteúdo
+específico de CADA `#[need]`/`#[offer]` — comparar, tarefa por tarefa, se os NOMES das chaves que
+`Reactor`/`Separator`/`Compressor` declaram batem exatamente com o que cada uma espera receber (uma
+chave escrita errada — typo, ou chave certa mas semanticamente trocada — não apareceria como
+violação de ordem, só como um valor logicamente errado). Segundo candidato: auditar se algum valor
+físico depende de um atuador (fase B) que talvez devesse estar acoplado mais de perto — não coberto
+por este teste, que só olha fase (A).
+
+---
+
+## Experimento 21 — Trajetória real reproduzida em `cargo test`: divergência é rápida e real, não numérica
+
+**Data:** 2026-09-15 — **Concluído (root cause ainda aberto, mas agora precisamente localizado)**
+
+### Observação
+
+Exp 19/20 provaram que `Reactor`/`Separator`/`Compressor` calculam corretamente, isolados, com
+entradas conhecidas — mas isso não pode, por construção, pegar um bug de ORDEM de avaliação entre
+unidades (`sort_phase_a`) ou de acúmulo ao longo de múltiplos passos de RK4, porque nenhum desses
+testes chama `evaluate()` mais de uma vez nem exercita o scheduler de verdade. Confirmar/descartar
+essas duas hipóteses exigia rodar a trajetória real — até agora, só possível via processo inteiro +
+OPC-UA + Python, lento (minutos reais por poucas horas simuladas) e caro de iterar.
+
+### Hipótese
+
+Se o mesmo laço evaluate()+RK4+commit() que `Simulation::spawn_plant_thread` roda de verdade for
+extraído pra dentro de um teste — usando `monjolo::attach_discovered_components` com o `Snapshot`
+real de `application.toml` (não vazio), sem thread/OPC-UA/`sleep` nenhum — a mesma trajetória de
+colapso observada ao vivo (Exp 18) deve aparecer, em milissegundos, permitindo instrumentar cada
+tick e achar onde exatamente a física começa a se comportar mal.
+
+### Intervenção
+
+**Parte 1 — reproduzir o colapso.** Novo teste em `tep-plant/src/lib.rs`:
+`traces_the_real_multi_unit_trajectory_to_find_where_it_first_diverges`. Monta a planta inteira via
+`attach_discovered_components` + `Snapshot::from_file("application.toml")`, pega os `Proxy`s de
+estado/derivada de `root.state_keys()` (mesma técnica de `Simulation::spawn_plant_thread`), e roda
+3500 ticks (`dt_hours=1/3600`, ≈0.97h simuladas — cobre com folga a janela de ~0.87h do Exp 18) do
+mesmo laço `RK4::step(current, dt, |perturbed| { escreve; root.evaluate(); lê derivadas })` +
+commit(). A cada tick lê (sem integrar) `reactor.temperature`/`pressure`, `separator.temperature`,
+`compressor.pressure` — as mesmas quatro grandezas já validadas isoladamente nos Exp 19/20 — e
+imprime a cada tick nos primeiros 20, depois a cada 50. Um `assert!` pára o teste na primeira
+leitura não-finita ou grosseiramente fora de escala.
+
+**Parte 2 — checar se é o `dt` do RK4.** Antes de assumir instabilidade numérica, conferido o `dt`
+que o código antigo (`v1.0.0`) realmente usava: `service/src/config.rs` tem `dt: 0.001` (horas) —
+3.6 segundos simulados por passo. O `dt_hours` atual (`1/3600h` ≈ 1 segundo simulado por passo) é
+MAIS FINO que o original, não mais grosso — um passo mais fino deveria ajudar a estabilidade de um
+RK4 explícito, não piorar. Isso já enfraquece a hipótese de "RK4 de passo fixo perdendo
+estabilidade" como explicação principal.
+
+**Parte 3 — comparação exata contra uma trajetória validada.** O usuário forneceu
+`docs/simulations/simulation_log_13.csv` (cópia trazida pra `tep-plant/docs/simulations/`) — a
+gravação REAL do Exp 13 (baseline validado, mesmo `te_exp3_snapshot.toml`/`application.toml`, física
+antiga confirmada correta, 20h simuladas sem distúrbio). Segundo teste,
+`diverges_from_the_validated_baseline_csv_early_not_gradually`: mesmo harness da Parte 1, mas em vez
+de checar contra faixas "parece razoável", lê o CSV linha a linha e compara `reactor.temperature`/
+`xmeas.reactor.pressure` contra o valor EXATO que a planta validada tinha no `t_h` mais próximo (os
+dois grids não coincidem — CSV a cada 0.001h, aqui a cada 1/3600h — um ponteiro avançando resolve,
+já que ambos são monotônicos). Limiar de divergência: 2°C ou 20 kPa (bem acima do drift lento
+documentado no Exp 10, +1 kPa/h). Para no primeiro tick que ultrapassar o limiar.
+
+### Resultado
+
+**Parte 1.** A trajetória de colapso do Exp 18 reproduziu quase tick a tick (mesma forma, mesma
+escala de tempo) — rodando em 0.69s, não minutos. Tabela condensada (trajetória completa tem ~70
+linhas):
+
+| tick     | t_h       | reactor.T (°C)   | xmeas.reactor.P (kPa) | separator.T (°C) | compressor.P (mmHg) |
+| -------- | --------- | ---------------- | --------------------- | ---------------- | ------------------- |
+| 0        | 0.0003    | 120.43           | 2695.0                | 80.35            | 23946.8             |
+| 600      | 0.167     | 100.56           | 2822.8                | 73.23            | 24951.1             |
+| 1450     | 0.403     | 59.09            | 4347.7                | 90.68            | 37096.9             |
+| 2000     | 0.556     | 60.66            | 5303.0                | 83.94            | 44941.2             |
+| 2300     | 0.639     | 59.90            | 5213.9 → **oscila**   | 90.34            | 47315.6             |
+| 2800     | 0.778     | 45.26            | 2339.0                | 98.22            | 21431.6             |
+| **2900** | **0.806** | **0.00**         | **11885.7**           | 118.63           | **−5 659 126.2**    |
+| 3450     | 0.959     | 0.00 (congelado) | 11885.7 (congelado)   | 84.88            | 93 690 895.4        |
+
+Três fases nítidas, não vistas com essa clareza no teste ao vivo (amostragem grossa demais lá):
+1. **t_h 0–0.40h**: decaimento suave e monotônico de T (120→59°C), P subindo continuamente.
+2. **t_h 0.40–0.63h**: um PLATÔ — reactor.T se estabiliza perto de 59-60°C por um bom tempo,
+   enquanto a pressão continua subindo (gás não-reagido ainda se acumulando na mesma taxa).
+3. **t_h 0.63–0.81h**: regime CAÓTICO — pressão do reator oscila (sobe, cai, sobe, cai:
+   5557→5214→5092→3393→3358→3226→...→2339 kPa) e `separator.temperature` sobe de forma anômala
+   (82→90→98→99.9→**118.6°C**, mais quente que nunca esteve) pouco antes do colapso final.
+4. **t_h≈0.81h**: colapso — `reactor.temperature` cai pra exatamente `0.0` e
+   `compressor.pressure` vira **negativo** (`-5.66 milhões` mmHg) — fisicamente impossível
+   (pressão não pode ser negativa), assinatura clara de divergência NUMÉRICA do integrador
+   overshooting — mas, como a Parte 3 mostra, isso é só o estágio FINAL de um erro que já vinha de
+   muito antes, não a causa raiz.
+
+**Parte 2.** `dt` antigo = 0.001h (3.6s/passo) vs. `dt_hours` atual = 1/3600h (1s/passo, mais fino).
+
+**Parte 3 — a divergência exata contra `simulation_log_13.csv`:**
+
+| tick | t_h (nosso) | reactor.T | ref. CSV T | Δ T | xmeas.P | ref. CSV P | Δ P |
+| ---- | ----------- | --------- | ---------- | ----- | ------- | ---------- | ----- |
+| 0    | 0.0003      | 120.430   | 120.437    | 0.007 | 2694.958 | 2694.605  | 0.353 |
+| 10   | 0.0031      | 120.355   | 120.432    | 0.077 | 2694.604 | 2691.737  | 2.866 |
+| 40   | 0.0114      | 120.098   | 120.338    | 0.240 | 2694.311 | 2688.030  | 6.281 |
+| 100  | 0.0281      | 119.473   | 120.166    | 0.692 | 2694.731 | 2689.218  | 5.513 |
+| 160  | 0.0447      | 118.686   | 120.098    | 1.412 | 2696.511 | 2691.075  | 5.436 |
+| **200** | **0.0558** | **118.060** | **120.066** | **2.007** | 2698.637 | 2692.785 | 5.852 |
+
+Divergência ultrapassa o limiar (2°C) no **tick 200, `t_h≈0.056h` (~3.3 minutos simulados)** — mais
+de 500x mais cedo que o colapso completo (`t_h≈0.81h`) visto na Parte 1. A pressão diverge de forma
+mensurável AINDA MAIS CEDO que a temperatura (já ~2.9 kPa fora por volta do tick 10, quando a
+temperatura ainda está só 0.08°C fora) — a diferença cresce de forma suave e contínua desde o tick 0,
+não em degrau, o que é a assinatura de um viés sistemático pequeno (um coeficiente ligeiramente
+errado, ou uma taxa/termo levemente forte demais ou fraco demais), não de um bug pontual (índice
+trocado, sinal invertido) nem de acúmulo de ruído numérico.
+
+### Conclusão
+
+**Hipótese confirmada, e a causa muda de figura de novo — pra melhor.** O `dt` mais fino que o
+original (Parte 2) descarta instabilidade de integrador como explicação principal — um passo menor
+deveria ser mais estável, não menos. E a comparação exata contra a trajetória validada (Parte 3)
+prova que a divergência é rápida e real desde o início: já mensurável na pressão em minutos, não em
+horas — o colapso completo da Parte 1 (`t_h≈0.81h`) é só o efeito bola de neve de um erro que já
+existia 500x mais cedo. Isso é uma boa notícia pra investigação: não precisamos mais rodar 3500
+ticks nem entender o regime caótico tardio (platô, oscilação de pressão, `separator.temperature`
+anômalo) — o bug real está em algum lugar dos PRIMEIROS ~200 ticks, uma janela pequena o bastante
+pra inspecionar tick a tick à mão.
+
+**Próximo passo:** instrumentar TODAS as grandezas intermediárias de `Reactor`/`Separator`/
+`Compressor` (pressões parciais, taxas de reação, `heat_of_reaction`, as duas entalpias de fluxo,
+`uar`/`twr`) nos primeiros ~10-20 ticks, comparando cada uma contra o que a mesma física, calculada
+à mão a partir da mesma linha do CSV de referência, deveria produzir — a divergência mensurável de
+pressão já no tick 10 é o ponto de partida mais direto: é ali, não em `separator.temperature`
+(sintoma tardio da Parte 1), que a causa raiz deve estar.
+
+---
+
+## Experimento 20 — Testes unitários de Compressor e Separator — bug também não está aqui
+
+**Data:** 2026-09-15 — **Concluído**
+
+### Observação
+
+O Exp 19 descartou `Reactor::physical_state`/`mass_and_energy_balance` como origem do colapso ainda
+observado depois dos dois fixes de água de resfriamento (Exp 18) — ambos reproduzem o nominal
+documentado numa única chamada, sem integração RK4. Restam duas outras unidades com física própria
+(`Compressor`, `Separator`) que alimentam o balanço de energia do reator via o reciclo do
+compressor — candidatos naturais antes de investigar acúmulo de erro ao longo de múltiplos passos.
+
+### Hipótese
+
+Se `Compressor::physical_state`/`outlet_flows`/`mass_and_energy_balance` e
+`Separator::physical_state`/`mass_and_energy_balance` também reproduzirem seus respectivos pontos
+nominais e conservarem corretamente em cenários de fluxo balanceado, o bug remanescente do Exp 18
+não está em NENHUMA das quatro unidades isoladamente — sobra só acúmulo de erro ao longo de vários
+passos de RK4 (ou uma interação entre unidades que só aparece com valores reais, não nos cenários
+artificialmente balanceados destes testes).
+
+### Intervenção
+
+Mesma técnica dos testes de `reactor.rs` (Exp 19): chamar os métodos privados gerados pela macro
+(`__physical_state_impl`, `__outlet_flows_impl`, `__mass_and_energy_balance_impl`,
+`__heat_exchange_impl`) direto, com entradas conhecidas — sem precisar de
+`attach_discovered_components`/planta inteira. Uma nota antiga em `compressor.rs` dizia que isso
+"não dava pra testar sem a planta inteira" — desatualizada; a mesma técnica funciona igual.
+
+**`Compressor` (`src/units/compressor.rs`), 3 testes novos:**
+1. `physical_state_matches_nominal_operating_point_from_application_toml` — semeia com
+   `state.compressor_vapor.*`/`state.compressor.energy` de `application.toml`;
+   `separator_temperature` (única entrada externa) não foi chutado — foi computado de verdade
+   chamando `Separator::physical_state(120.0)` com o estado nominal do separador (exigiu marcar
+   `Separator::physical_state` como `pub(crate)`, único ajuste de visibilidade necessário).
+2. `outlet_flows_bypass_is_an_exact_copy_of_recycle_flow` — `flow6` tem que ser cópia exata de
+   `flow5` (invariante estrutural do Block 31 original).
+3. `mass_and_energy_balance_cancels_when_only_recycle_flow_is_present_and_balanced` — feeds
+   frescos zerados, reciclo com composição/entalpia/vazão iguais entrando e saindo.
+
+**`Separator` (`src/units/separator.rs`), 4 testes novos:**
+1. `physical_state_matches_nominal_operating_point_from_application_toml` — semeia com
+   `state.separator_vapor.*`/`state.separator.energy`, `reactor_temperature=120.0`.
+2. `heat_exchange_returns_the_corrected_frozen_return_temperature` — regressão direta do bug do
+   Exp 18: trava `77.29698353` como saída, não o `40.0` errado.
+3. `mass_and_energy_balance_cancels_when_outflow_matches_inflow_exactly` — vazão de saída
+   (`flow8+flow9`) igual à de entrada (`flow7`), mesma composição/entalpia.
+4. `mass_and_energy_balance_passes_through_separator_heat_when_flows_are_balanced` — mesmo cenário
+   balanceado, mas com `separator_heat` não-nulo: só ele deveria sobrar na derivada.
+
+### Resultado
+
+Todos os 7 testes passam (33/33 na suite completa). Um deles revelou um erro de PREMISSA (não de
+código): o primeiro chute pra XMEAS(16) (pressão do compressor) foi "~2700 kPa, igual ao reator" —
+o teste falhou, com o código devolvendo 3091.3 kPa. Investigação mostrou que XMEAS(16) roda
+genuinamente mais alto (é a pressão de descarga do compressor, não a do reator/separador) — valor
+plausível e coerente com a literatura do TEP (~3100 kPa), não um bug. Faixa do teste corrigida pra
+(2900,3300) kPa, com o motivo documentado no próprio teste.
+
+### Conclusão
+
+**Hipótese confirmada — o bug remanescente do Exp 18 não está em `Compressor` nem em `Separator`,
+isoladamente.** As quatro unidades (Reactor, Exp 19; Compressor e Separator, aqui) reproduzem seus
+pontos nominais numa única chamada e conservam corretamente em fluxo balanceado. A suspeita agora
+se concentra em duas frentes: (a) o acúmulo de erro ao longo de múltiplos passos de RK4 — nenhum
+teste até aqui rodou mais de UM passo de física —, ou (b) uma interação entre unidades que só
+aparece com os valores REAIS que elas trocam durante a simulação de verdade, diferente dos cenários
+artificialmente balanceados usados nestes testes de conservação.
+
+**Próximo passo:** o que o Exp 18 já propunha — instrumentar a trajetória real (via
+`attach_discovered_components` + laço de RK4 sem `sleep`, sem precisar de OPC-UA) e comparar os
+valores intermediários de cada unidade, tick a tick, contra o que as chamadas isoladas destes dois
+experimentos provam ser fisicamente correto no primeiro passo — pra achar exatamente em qual tick a
+trajetória real começa a divergir do que a física, sozinha, permitiria.
+
+---
+
+## Experimento 19 — Testes unitários de Reactor::physical_state/mass_and_energy_balance — bug não está aqui
+
+**Data:** 2026-09-15 — **Concluído**
+
+### Observação
+
+O Exp 18 encontrou e corrigiu dois bugs de água de resfriamento (reator + separador), mas a planta
+ainda diverge — colapso numérico em `t_h≈0.87h`. Sem instrumentação direta, isolar SE o problema
+está na física pura do reator (`physical_state`/`mass_and_energy_balance`) ou em outro lugar
+(integração RK4 acumulando erro ao longo de muitos passos, ou outra unidade inteira) exigia rodar o
+processo inteiro via OPC-UA a cada tentativa — lento e pouco preciso pra localizar a causa.
+
+### Hipótese
+
+Se `Reactor::physical_state()` (flash + cinética, chamada única, não depende de nenhuma outra
+unidade) já reproduzir o ponto nominal documentado a partir do estado exato de `application.toml`,
+e se `Reactor::mass_and_energy_balance()` (a equação de balanço em si) conservar corretamente
+quando as vazões de entrada/saída são artificialmente igualadas, então o bug remanescente do Exp 18
+NÃO está nesses dois métodos — está em outro lugar.
+
+### Intervenção
+
+Três testes novos em `tep-plant/src/units/reactor.rs`:
+
+1. `physical_state_matches_nominal_operating_point_from_application_toml` — semeia `Reactor` com os
+   valores exatos de `application.toml` (`state.reactor_vapor.*`/`state.reactor.energy`) e chama
+   `physical_state()` uma vez, sem nenhuma integração. Verifica: temperatura em (110,130)°C,
+   XMEAS(7) em (2500,2900) kPa, `heat_of_reaction > 0`, `reaction_rates[0] < -1.0` (A sendo
+   consumido de verdade, reação não estagnada).
+2. `mass_and_energy_balance_cancels_flow_terms_when_inflow_equals_outflow` — composição/
+   temperatura/vazão idênticas entrando e saindo, sem reação nem calor: espera derivada zero em
+   tudo.
+3. `mass_and_energy_balance_passes_through_reaction_and_heat_when_flows_are_balanced` — mesmo setup
+   balanceado, mas com `reaction_rates`/`heat_of_reaction`/`reactor_heat` não-nulos: espera que a
+   derivada seja EXATAMENTE esses valores (termos de fluxo cancelados, só sobra reação/calor).
+
+### Resultado
+
+Os 3 testes passam (26/26 na suite completa). `physical_state()` reproduz o nominal documentado
+(~120°C, ~2700 kPa, reação avançando) numa única chamada, sem nenhuma integração RK4 envolvida.
+`mass_and_energy_balance()` conserva corretamente nos dois cenários de fluxo balanceado — nenhum
+índice trocado entre `vapor_derivative` (0..3)/`liquid_derivative` (3..8), nenhum termo faltando ou
+duplicado.
+
+### Conclusão
+
+**Hipótese confirmada — o bug remanescente do Exp 18 não está em `Reactor::physical_state()` nem na
+estrutura de `Reactor::mass_and_energy_balance()`.** Ambos calculam corretamente a partir de
+entradas corretas. Isso desloca a suspeita pra dois lugares: (a) os valores REAIS de
+`compressor_vapor`/`compressor_temperature`/`compressor_recycle_flow`/`outlet_flow` que outras
+unidades entregam pro reator durante a simulação de verdade (diferente do cenário artificialmente
+balanceado destes testes) podem estar incorretos — candidatos: `Compressor::physical_state`/
+`outlet_flows`, ou o próprio `Separator` (cujo bug de água de resfriamento já mexeu uma vez no
+reciclo); ou (b) o erro só aparece depois de várias dezenas/centenas de passos RK4 acumulando, não
+visível em nenhuma chamada isolada.
+
+**Próximo passo:** escrever o mesmo tipo de teste unitário — semear com valores nominais reais,
+chamar uma vez, comparar contra o nominal documentado — pra `Compressor::physical_state`/
+`outlet_flows` e `Separator::physical_state`/`heat_exchange`, restringindo ainda mais onde o valor
+diverge do esperado antes de precisar rodar RK4 de verdade.
+
+---
+
+## Experimento 18 — Água de resfriamento (reator + separador): colapso adiado, não eliminado
+
+**Data:** 2026-09-15 — **Concluído (parcial — root cause ainda não fechado)**
+
+### Observação
+
+Após a migração pra `monjolo`/arquitetura Composite (issues #67/#68), testes ao vivo via UaExpert
+mostraram a planta colapsando rapidamente: pressão do reator muito acima do limite de ISD (3000
+kPa, chegando a 4524.5 kPa) e temperatura do reator estabilizando perto de 35-38°C em vez do
+nominal ~120°C documentado (Exp 3/10/11/13).
+
+Comparando `tep-plant/src/units/reactor.rs` (então `heat()`, hoje `heat_exchange()`) contra
+`v1.0.0`/`teprob.f` Block 32: o código atual usava uma constante fixa
+(`REACTOR_COOLING_WATER_RETURN = 35.0`) no lugar da temperatura de RETORNO da água de resfriamento
+(`twr`), que no original é resolvida a cada tick por um balanço de calor quase-estático dependente
+da vazão (`valve.reactor_cooling_water.position`, XMV 10) e da própria temperatura do reator. 35.0
+é, na verdade, o `s_zero` do canal de distúrbio 4 (TCWR — temperatura de ENTRADA nominal),
+reaproveitado por engano no lugar da saída. A válvula XMV 10 estava completamente desconectada da
+física: escrever nela não tinha efeito nenhum.
+
+### Hipótese
+
+Restaurar o balanço de calor quase-estático do reator (`twr` como média ponderada entre a
+capacidade térmica da água — vazão real da válvula × calor específico — e o coeficiente de troca do
+reator `uar`) deveria restaurar a operação estável em torno do ponto nominal documentado (~120°C,
+~2705 kPa, estável por 20h simuladas nos Exp 10/11/13, todos a partir do mesmo
+`te_exp3_snapshot.toml`).
+
+### Intervenção
+
+**Correção 1 (reator):** implementada em `tep-plant/src/units/reactor.rs` — commits `5c5e73b`
+(fix) + `925a6d9` (rename cosmético, sem mudança de física). Testada ao vivo via script Python/
+`asyncua` (`opc.tcp://127.0.0.1:4840/tep/server/`), lendo `clock.t_h`/`xmeas.reactor.*` a cada
+poucos segundos.
+
+**Resultado da correção 1 isolada:** reator ainda colapsava — 120°C → ~42°C em só `t_h≈0.35h`
+(~21 min simulados), muito mais rápido que o drift de massa lento e conhecido (~0.15%/h, validado
+estável por 20h nos Exp 10/11/13). Pressão ultrapassava o ISD.
+
+**Hipótese de segunda causa:** suspeita de que `application.toml` (o snapshot inicial) pudesse
+estar incompleto ou incorreto em relação ao baseline histórico. `diff` completo contra
+`docs/cases/te_exp3_snapshot.toml` mostrou os arquivos **byte-idênticos** — descartando essa
+hipótese na forma literal. Mas inspecionar o conteúdo revelou a seção `[state.cooling]`:
+
+```toml
+[state.cooling]
+reactor_water_temp   = 94.59927549
+separator_water_temp = 77.29698353
+```
+
+`reactor_water_temp = 94.6` confirma exatamente o alvo da correção 1 (bate com o comentário
+histórico "`twr≈94.6°C` no nominal"). Mas `separator_water_temp = 77.3` expôs um SEGUNDO bug
+idêntico: `Separator::heat_exchange()` usava `SEPARATOR_COOLING_WATER_RETURN = 40.0` — de novo o
+`s_zero` do canal de distúrbio errado (TCWS, canal 5, entrada), não o valor de retorno congelado de
+verdade. Diferente do reator, o `tws` original (`teprob.f` Block 40: `yp[37]=0.0`, "tws kept at
+snapshot value") é uma constante genuína, sem dependência de válvula — a correção aqui é só trocar
+o número, não recalcular nada.
+
+**Correção 2 (separador):** `SEPARATOR_COOLING_WATER_RETURN` corrigido de `40.0` para
+`77.29698353` em `src/units/separator.rs`. Relevância: o separador alimenta o reciclo do
+compressor, e `enthalpy_compressor_recycle` é um dos dois termos dominantes no balanço de energia
+do PRÓPRIO reator (`Reactor::mass_and_energy_balance`) — resfriar demais o separador empurra
+entalpia fria pro reator via essa malha, independente do bug do reator já corrigido.
+
+**Reteste:** processo relançado do zero (mesmo `application.toml`), acelerado via
+`control.set_speed` (OPC-UA) pra cobrir várias horas simuladas em segundos reais, com leituras
+frequentes de `clock.t_h`/`xmeas.reactor.temperature`/`xmeas.reactor.pressure`/
+`xmeas.reactor.level`.
+
+### Resultado
+
+Com as DUAS correções aplicadas, `t_h=0.0106h`: T=120.13°C, P=2694.3 kPa, `twr`=93.6°C — bate quase
+exatamente com o nominal documentado, confirmando as duas correções corretas isoladamente.
+
+Trajetória completa (velocidade 100x, amostrada a cada ~2s reais ≈ 0.096h simuladas):
+
+| t_h (simulado) | Reactor T (°C) | Reactor P (kPa)     | Level (%)        |
+| -------------- | -------------- | ------------------- | ---------------- |
+| 0.10           | 114.6          | 2717                | 70.8             |
+| 0.20           | 88.6           | 2927                | 68.4             |
+| 0.29           | 63.4           | 3488 (> ISD 3000)   | 72.2             |
+| 0.39           | 59.1           | 4222                | 80.7             |
+| 0.48           | 59.9           | 4941                | 89.9             |
+| 0.58           | 60.6           | 5377 (pico)         | 98.6             |
+| 0.68           | 57.4           | 3349 (queda súbita) | 98.9             |
+| 0.77           | 45.6           | 2402                | 84.7             |
+| 0.87           | **0.0**        | **11885.7**         | **≈3.37 × 10⁸⁹** |
+
+A partir de `t_h≈0.87h`, todos os valores congelam exatamente nesses números (conferido em 8
+leituras subsequentes até `t_h=24.2h`) — não é uma física real convergindo, é o integrador RK4
+tendo divergido numericamente (nível na casa de 10⁸⁹ não tem significado físico).
+
+### Conclusão
+
+**Hipótese parcialmente confirmada.** As duas correções são individualmente verificadas corretas —
+a trajetória em `t_h≈0.01h` bate quase exatamente com o nominal documentado — e juntas adiam e
+suavizam bastante o colapso (nominal se sustenta ~6x mais tempo simulado antes do primeiro
+cruzamento do ISD, e o modo de falha final muda de "estabiliza errado, cedo" para "diverge
+numericamente, mais tarde"). Mas a instabilidade de fundo **não foi eliminada**: a pressão já
+ultrapassa o ISD em `t_h≈0.29h`, e o sistema termina em colapso numérico (não físico) em vez de
+convergir pra qualquer equilíbrio.
+
+Isso aponta pra pelo menos uma TERCEIRA causa ainda não identificada — candidatos mais prováveis:
+(a) cinética de reação/VLE produzindo valores ruins quando a pressão sai muito da faixa calibrada
+das equações de Antoine (pico observado de 5377 kPa, bem acima do nominal ~2700 kPa), ou (b) uma
+discrepância ainda não encontrada no balanço de massa/energia da arquitetura Composite portada,
+relativa ao `teprob.f`/`v1.0.0` monolítico original.
+
+**Próximo passo:** instrumentar `Reactor::physical_state()` (pressões parciais, taxas de reação,
+`heat_of_reaction`) ao longo desta mesma trajetória, pra identificar em qual ponto exato os números
+divergem do que a arquitetura original produziria com as mesmas entradas.
+
+---
+
+
 ## Experimento 17 — IDV(3): Step na temperatura do D feed (corrente 2)
 
 **Data:** 2026-06-02 — **Planejado**
@@ -32,13 +573,13 @@ D líquido mais quente entra no reator com maior entalpia específica — a temp
 
 Hipótese central: **temperatura sobe monotonicamente (sem malha fechada), pressão segue com algum atraso, e o único atuador que responde é XMV(6) via pressão.** Se a temperatura cruzar o ISD (>175°C) antes de estabilizar, a planta colapsa por temperatura — diferente dos Exp 15 e 16, que colapsaram por pressão.
 
-| Variável           | Baseline  | Esperado após IDV(3)                        |
-| ------------------ | --------- | ------------------------------------------- |
-| XMEAS(9) Reactor T | ~120 °C   | ↑ sem controle direto — deriva ou ISD       |
-| XMEAS(7) Reactor P | ~2699 kPa | ↑ ou ↓ dependendo das reações aceleradas    |
-| XMV(10) CWS valve  | ~41 %     | **fixo** — sem controlador de temperatura   |
-| XMV(6) Purge valve | ~39 %     | muda apenas se pressão variar               |
-| XMEAS(23,24,25)    | ~31/10/26%| pode derivar — cinética alterada por T      |
+| Variável           | Baseline   | Esperado após IDV(3)                      |
+| ------------------ | ---------- | ----------------------------------------- |
+| XMEAS(9) Reactor T | ~120 °C    | ↑ sem controle direto — deriva ou ISD     |
+| XMEAS(7) Reactor P | ~2699 kPa  | ↑ ou ↓ dependendo das reações aceleradas  |
+| XMV(10) CWS valve  | ~41 %      | **fixo** — sem controlador de temperatura |
+| XMV(6) Purge valve | ~39 %      | muda apenas se pressão variar             |
+| XMEAS(23,24,25)    | ~31/10/26% | pode derivar — cinética alterada por T    |
 
 ### Intervenção
 
@@ -133,14 +674,14 @@ Debugger config: "IHM: planta local (gRPC + CSV)"
 
 **CSV:** `docs/simulations/simulation_log.csv` | **Plot:** `docs/simulations/plots/simulation_log.png`
 
-| Variável           | Baseline  | Observado após IDV(2)                         | Hipótese |
-| ------------------ | --------- | --------------------------------------------- | -------- |
-| XMEAS(24) B reator | ~10 mol%  | ↑ ~11 mol% — sobe e continua crescendo        | ✗ hipótese previa SS estável |
-| XMEAS(7) Reactor P | ~2727 kPa | ↑ ~2840 kPa inicial, depois deriva até ISD    | ✗ hipótese previa SS estável |
-| XMEAS(9) Reactor T | ~120 °C   | flat — sem variação                           | ✓ confirmada |
-| XMV(6) Purge valve | ~42 %     | ↑ ~53% inicial, continua abrindo até ~67%+    | ✓ abre, mas insuficiente |
-| XMEAS(23) A mol%   | ~31 mol%  | levemente ↓ (diluição por B)                  | não previsto |
-| XMEAS(25) C mol%   | ~26 mol%  | levemente ↓ (diluição por B)                  | não previsto |
+| Variável           | Baseline  | Observado após IDV(2)                      | Hipótese                     |
+| ------------------ | --------- | ------------------------------------------ | ---------------------------- |
+| XMEAS(24) B reator | ~10 mol%  | ↑ ~11 mol% — sobe e continua crescendo     | ✗ hipótese previa SS estável |
+| XMEAS(7) Reactor P | ~2727 kPa | ↑ ~2840 kPa inicial, depois deriva até ISD | ✗ hipótese previa SS estável |
+| XMEAS(9) Reactor T | ~120 °C   | flat — sem variação                        | ✓ confirmada                 |
+| XMV(6) Purge valve | ~42 %     | ↑ ~53% inicial, continua abrindo até ~67%+ | ✓ abre, mas insuficiente     |
+| XMEAS(23) A mol%   | ~31 mol%  | levemente ↓ (diluição por B)               | não previsto                 |
+| XMEAS(25) C mol%   | ~26 mol%  | levemente ↓ (diluição por B)               | não previsto                 |
 
 O degrau composicional de B é visível em t ≈ 6.5 h simuladas. A pressão sobe de ~2727 para ~2840 kPa num degrau inicial que *parecia* estável na janela curta (t < 10h), mas o plot completo (até t = 31.4h) revela uma deriva monotônica até quase 3000 kPa. XMV(6) segue abrindo ao longo de todo o experimento, nunca conseguindo compensar a entrada de B. O experimento foi acelerado para 100% de velocidade a partir de ~t=8h; a planta colapsou por ISD de pressão.
 
