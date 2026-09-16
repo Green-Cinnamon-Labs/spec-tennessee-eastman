@@ -8,9 +8,121 @@ O experimento mais recente aparece primeiro.
 
 
 
+## Experimento 24 — `twr` congelado: a fórmula quase-estática era estruturalmente instável, não só mal calibrada — INVESTIGAÇÃO FECHADA
+
+**Data:** 2026-09-16 — **Concluído e FECHADO** — root cause dos Exp 18-23 encontrada e corrigida
+
+**Issue:** https://github.com/Green-Cinnamon-Labs/spec-tennessee-eastman/issues/71 (contexto — a
+investigação de instabilidade não teve issue própria, foi conduzida inteiramente via este arquivo)
+
+### Observação
+
+O Exp 23 corrigiu `REACTOR_COOLING_WATER_INLET` (35.0→38.5) e reduziu a divergência, mas não a
+eliminou: a trajetória completa ainda divergia (agora por SUPERAQUECIMENTO em vez de sub-
+resfriamento, pico ~128.8°C em vez do nominal ~120°C). Isso implicava um segundo fator, de sinal
+oposto, ainda presente. Revisando o código da fórmula quase-estática de `twr` com o usuário, surgiu
+a pergunta: essa fórmula (que calcula a temperatura de RETORNO da água de resfriamento do reator
+como média ponderada entre a água de entrada e a temperatura do reator, via `uar`/`fcwr`) realmente
+vem do FORTRAN original, ou foi algo introduzido depois — e, nesse caso, quando e por quê?
+
+### Hipótese
+
+Se essa fórmula já tiver sido tentada antes e revertida por instabilidade, isso explicaria por que
+CALIBRAR sua constante de entrada (Exp 23) só reduz o sintoma sem eliminá-lo — o problema seria
+estrutural (o próprio mecanismo de acoplamento `twr↔tcr`), não uma questão de calibração.
+
+### Intervenção
+
+**Parte 1 — arqueologia via `git log --follow`** em
+`tennessee-eastman-service/core/src/dynamics/tep/model.rs` (o arquivo original, de antes da migração
+pro `monjolo`), procurando todo commit que tocou a lógica de `twr`/`tws`:
+
+- **2026-03-09** (`b4c2077`, "fix(tep): match FORTRAN reference by removing CW temperature
+  dynamics"): havia uma EDO própria pra `twr`/`tws` (`yp[36] = (fwr*(tcwr-twr) - qur/500.7)`) —
+  revertida porque "Cooling water outlet temperatures were incorrectly implemented as dynamic
+  states... causing CW temperatures to collapse toward ~35°C, dramatically increasing heat removal
+  and destabilizing the reactor energy balance." Fixado para `yp[36]=yp[37]=0` (congelado), citando
+  o FORTRAN original: `YP(37)`/`YP(38)` nunca são atribuídos em TEFUNC.
+- **2026-05-27** (`123a6a3`, mesmo commit que introduziu controle de velocidade externo): a fórmula
+  quase-estática (a que os Exp 18-23 auditaram) foi introduzida DE NOVO — não como correção de bug,
+  mas especificamente pra dar ao IDV(4) algum efeito observável: com `twr` congelado, IDV(4) (que
+  perturba `tcwr`) literalmente não alcança lugar nenhum, o que estava travando o Experimento 14
+  daquela época (parte da numeração ORIGINAL do projeto — não a numeração deste arquivo, que foi
+  renumerada desde então).
+- **2026-05-28**: a tag `v1.0.0` foi cortada — exatamente 1 dia depois de `123a6a3`.
+- **2026-06-01** (`ad08ea0`, "wip: EXP14 Done!"): a MESMA fórmula quase-estática foi comentada de
+  volta pra `twr = yy[36]` (congelado), com o autor documentando o motivo diretamente no código:
+  "O modelo quasi-estático... fazia twr responder a tcwr e tcr, mas quando tcr cai abaixo de ~67°C o
+  balanço produz twr < tcr → QUR < 0 (trocador 'aquece' o reator), comportamento ausente no FORTRAN
+  original onde YP(37) nunca é atribuído."
+
+Ou seja: **o mesmo mecanismo (algum tipo de acoplamento dinâmico entre `twr` e `tcr`) foi tentado e
+revertido duas vezes**, em datas diferentes, por dois motivos documentados de instabilidade — e a
+`v1.0.0` que os Exp 18-23 trataram como "ground truth" validado é, por pura coincidência de datas, o
+ÚNICO ponto de toda a história do projeto onde essa fórmula ficou ativa (um dia depois de reintroduzida,
+três dias antes de ser revertida de novo).
+
+**Parte 2 — confirmação empírica contra o próprio baseline.** Se `docs/simulations/
+simulation_log_13.csv` (a trajetória validada usada em todos os Exp 21-23) foi gerada com a fórmula
+quase-estática ativa, `XMEAS(21)` deveria responder a `reactor.temperature` com peso `uar/
+(uar+cw_capacity) ≈ 0.69`. Ao longo das 20h do CSV, `XMEAS(9)` varia ~0.49°C — a fórmula preveria
+~0.34°C de variação em `XMEAS(21)`. O que se observa: `XMEAS(21)` varia só ~0.076°C (94.5617 a
+94.6380) — quase 5× menos do que a fórmula previria, e plenamente consistente com `twr` CONGELADO
+mais ruído de medição (σ=0.01, Block 37/`XNS`). **O próprio baseline validado nunca usou a fórmula
+quase-estática.**
+
+**Intervenção de código:** em `tep-plant/src/units/reactor.rs`, `heat_exchange()` — a fórmula
+quase-estática foi comentada (preservada como referência histórica, não deletada) e `twr` volta a
+ser uma constante congelada, `REACTOR_COOLING_WATER_RETURN = 94.59927549` (o mesmo valor de
+`[state.cooling].reactor_water_temp` em `application.toml`) — o mesmo padrão que
+`Separator::heat_exchange` já usava sem nunca ter sido tocado por essa novela toda
+(`SEPARATOR_COOLING_WATER_RETURN`). `valve.reactor_cooling_water.position` deixou de ser um
+`#[need]` desta função — a válvula genuinamente não afeta esta física, conclusão a que o próprio
+projeto já tinha chegado duas vezes antes (2026-03, 2026-06) e que não tinha sido reaplicada na
+migração pro `monjolo`.
+
+### Resultado
+
+- `physical_state_and_heat_exchange_match_the_validated_csv_at_many_points_along_the_real_trajectory`
+  (Exp 23, tep-plant): `twr` máx. Δ contra `XMEAS(21)` caiu de 0.33°C (pós-Exp23, fórmula calibrada)
+  pra **0.026°C** — dentro do ruído de medição puro.
+- `diverges_from_the_validated_baseline_csv_early_not_gradually` (Exp 21, tep-plant): divergia no
+  tick 200 (pré-Exp23) e depois no tick 310 (pós-Exp23); **agora PASSA integralmente nos 1000 ticks
+  testados** — nenhuma divergência da trajetória validada detectada.
+- `traces_the_real_multi_unit_trajectory_to_find_where_it_first_diverges` (Exp 21, tep-plant): antes
+  colapsava (temperatura→0 ou →61°C, pressão→milhões ou →4000+ kPa) entre `t_h≈0.81h` e `t_h≈0.96h`
+  dependendo da versão; **agora `reactor.temperature` fica genuinamente estável em ~120.44°C
+  (variação <0.01°C) por toda a janela de 3500 ticks (~0.96h simulada)** — sem platô, sem regime
+  caótico, sem colapso. `reactor.pressure` deriva suavemente de 2695.0 pra 2695.5 kPa (~0.5 kPa em
+  quase 1h) — o drift de massa lento e benigno já documentado desde o Exp 6-9, não uma divergência.
+- Suite completa de `tep-plant`: **38/38 testes passam** — as 2 que rastreavam divergência conhecida
+  (Exp 21) agora passam de verdade, não por relaxamento de limiar.
+
+### Conclusão
+
+**Causa raiz encontrada e corrigida.** Não era um bug de calibração (Exp 18/23 corrigiram
+calibrações reais, mas eram sintomas, não a doença) — era uma escolha de modelagem estruturalmente
+instável, reintroduzida por engano nesta investigação ao "consertar" a desconexão original da
+válvula (achado no início desta sessão, antes do Exp 18) sem saber que essa mesma reconexão já tinha
+sido tentada e revertida duas vezes na história do projeto, por instabilidade documentada em ambas
+as ocasiões. A `v1.0.0` usada como referência ao longo de toda a investigação (Exp 18-23) capturou,
+por coincidência de um dia de diferença na data da tag, o único momento da história do projeto em
+que esse mecanismo instável estava ativo — nunca foi, de fato, uma referência validada para esta
+parte específica da física.
+
+**Toda a investigação de instabilidade (Exp 18 até aqui) está FECHADA.** As correções válidas que
+sobrevivem: água de resfriamento do SEPARADOR (Exp 18, `SEPARATOR_COOLING_WATER_RETURN=77.29698353`
+— nunca fez parte desta novela, sempre foi uma constante congelada correta), a correção de
+`REACTOR_COOLING_WATER_INLET` (Exp 23, hoje sem efeito prático já que a fórmula que a consumia foi
+removida, mas o comentário histórico permanece no código como documentação), o bug de priming do
+`CurrentState` (issue #71), e o artefato de ordem de execução (issue #71). A causa raiz real —
+`twr` do reator não deveria nunca ter sido dinâmico — está corrigida.
+
+---
+
 ## Experimento 23 — Auditoria formula-a-fórmula contra `v1.0.0`: achado e corrigido um segundo bug de água de resfriamento do reator
 
-**Data:** 2026-09-15 — **Concluído (bug real corrigido; root cause principal ainda aberto)**
+**Data:** 2026-09-15 — **Concluído** — bug real corrigido; root cause principal fechada no Exp 24
 
 **Issue:** continuação da investigação de spec-tennessee-eastman#71 (sem issue própria — correção
 pontual descoberta no processo de auditoria pedido pelo usuário)
@@ -277,7 +389,7 @@ por este teste, que só olha fase (A).
 
 ## Experimento 21 — Trajetória real reproduzida em `cargo test`: divergência é rápida e real, não numérica
 
-**Data:** 2026-09-15 — **Concluído (root cause ainda aberto, mas agora precisamente localizado)**
+**Data:** 2026-09-15 — **Concluído** — root cause localizada aqui, fechada no Exp 24
 
 ### Observação
 
