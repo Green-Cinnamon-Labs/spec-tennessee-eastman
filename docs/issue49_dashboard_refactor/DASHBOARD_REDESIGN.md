@@ -116,7 +116,9 @@ const chartLevels = new Chart(document.getElementById('chart-levels'), {
 **Sensível a (IDVs):**
 - IDV(6): A feed loss → VLR cai (menos entrada)
 - IDV(14): Reactor CW valve stuck → afeta troca térmica → pode afetar Flash dynamics → VLS ↑
-- IDV(16): D feed valve stuck → afeta V_LR e V_LS
+- ~~IDV(16): D feed valve stuck~~ — correção 2026-09-19: IDV(16) não é "válvula travada" (isso é
+  só IDV(14)/(15) no paper); no `teprob.f` real, IDV(16) perturba o coeficiente de troca térmica
+  do condensador (UAC), não uma válvula de feed — ver `tep-plant/docs/05-disturbios.md`.
 
 **Problema crítico:** Níveis altos → alarme; níveis baixos → perda de controle. Indicadores diretos de falha operacional.
 
@@ -156,8 +158,9 @@ const chartFlows = new Chart(document.getElementById('chart-flows'), {
 - **IDV(2):** B composition em stream 4 → idem
 - **IDV(3):** D feed temp → não afeta fluxo direto
 - **IDV(6):** A feed loss (stream 1 → 0) → XMEAS(1) → 0
-- **IDV(16):** D feed valve stuck → XMEAS(2) fica constante
-- **IDV(17):** A&C valve stuck → XMEAS(4) fica constante
+- ~~IDV(16)/(17): D feed / A&C valve stuck~~ — correção 2026-09-19: nenhum dos dois é "válvula
+  travada" no `teprob.f` real (IDV(16)→UAC do condensador, IDV(17)→remoção de calor do reator,
+  nenhum dos dois toca vazão de feed) — ver `tep-plant/docs/05-disturbios.md`.
 
 ---
 

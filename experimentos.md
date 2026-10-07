@@ -118,6 +118,16 @@ removida, mas o comentário histórico permanece no código como documentação)
 `CurrentState` (issue #71), e o artefato de ordem de execução (issue #71). A causa raiz real —
 `twr` do reator não deveria nunca ter sido dinâmico — está corrigida.
 
+**Adendo (2026-09-16, epic #71 "Aplicação dos distúrbios"):** esta investigação fecha o capítulo da
+INSTABILIDADE causada pela fórmula quase-estática — não decide que a fórmula fica banida para sempre.
+Sem ela, IDV(4) e IDV(11) (ambos perturbam `tcwr`) não têm efeito físico nenhum, e a própria razão de
+`twr` ter sido tornado dinâmico três vezes na história do projeto (2026-03, 2026-05, e implicitamente
+o próprio Exp 24 revertendo de novo) foi sempre dar efeito a esses dois IDVs. A decisão explícita do
+usuário (2026-09-16): a fórmula VAI voltar, como parte da implementação dos 20 distúrbios — desta vez
+acompanhada de uma malha de controle de água de resfriamento do reator que nenhuma das três tentativas
+anteriores tinha, para não repetir o mesmo colapso pela quarta vez. Rastreado em #71/#73/#72; ver
+`tep-plant/docs/05-disturbios.md` (nota em IDV(4)).
+
 ---
 
 ## Experimento 23 — Auditoria formula-a-fórmula contra `v1.0.0`: achado e corrigido um segundo bug de água de resfriamento do reator
