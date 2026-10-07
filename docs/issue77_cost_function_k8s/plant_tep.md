@@ -1,7 +1,7 @@
 # The TEP plant object — `plant.yaml` explained (Issue #77)
 
-**File:** [tep-supervisor/local/k8s/tep/plant.yaml](../../../tep-supervisor/local/k8s/tep/plant.yaml)
-**Type:** [Plant, plant_types.go:149](../../../tep-operator/api/v1alpha1/plant_types.go#L149)
+**File:** [tep-lab/local/k8s/tep/plant.yaml](../../../tep-lab/local/k8s/tep/plant.yaml)
+**Type:** [Plant, plant_types.go:149](../../../plant-supervisor/api/v1alpha1/plant_types.go#L149)
 **Date:** 2026-10-07
 
 ---
@@ -27,27 +27,27 @@ The `Plant` is also where the **verdict lives**. Like every Kubernetes object it
 
 ## Field by field
 
-### `metadata.name: tep` — [line 8](../../../tep-supervisor/local/k8s/tep/plant.yaml#L8)
+### `metadata.name: tep` — [line 8](../../../tep-lab/local/k8s/tep/plant.yaml#L8)
 
 The object's name. It is how you refer to the plant everywhere else: `kubectl get plant tep`, `kubectl describe plant tep`, and the IHM, which watches the Plant named by its `K8S_CR_NAME` setting (default `tep`). If you rename it, the IHM must be told the new name.
 
-### `historianURL: "http://host.docker.internal:8090"` — [line 10](../../../tep-supervisor/local/k8s/tep/plant.yaml#L10)
+### `historianURL: "http://host.docker.internal:8090"` — [line 10](../../../tep-lab/local/k8s/tep/plant.yaml#L10)
 
 Where the operator gets data from. The operator never talks to the plant itself; it asks the historian "give me the average of these signals over the last N seconds" with `POST /aggregate`. This field is that historian's address.
 
 `host.docker.internal` is a special name Docker provides so that a container (here, the operator's Pod inside Kind) can reach services running on your own machine, where the historian runs (from VS Code or docker compose) on port 8090. If the historian were deployed inside the cluster instead, this would become a cluster address such as `http://tep-historian:8090`.
 
-If the historian can't be reached, or answers but isn't connected to the plant, the plant goes to `Pending` with the reason `HistorianUnreachable` or `PlantDisconnected`. The operator gives the historian 5 seconds to answer, so a slow historian shows up as `Pending` instead of freezing the operator ([client.go:69](../../../tep-operator/internal/historian/client.go#L69)).
+If the historian can't be reached, or answers but isn't connected to the plant, the plant goes to `Pending` with the reason `HistorianUnreachable` or `PlantDisconnected`. The operator gives the historian 5 seconds to answer, so a slow historian shows up as `Pending` instead of freezing the operator ([client.go:69](../../../plant-supervisor/internal/historian/client.go#L69)).
 
-### `policyRef: tep-mode1` — [line 11](../../../tep-supervisor/local/k8s/tep/plant.yaml#L11)
+### `policyRef: tep-mode1` — [line 11](../../../tep-lab/local/k8s/tep/plant.yaml#L11)
 
 Which `OperatingPolicy` is active right now, by name. From it the operator follows the chain **Plant → OperatingPolicy → CostFunction**: the policy names its cost function (`tep-downs-vogel`), so the Plant doesn't need to.
 
 This field is the **switch between operating modes**. To run the plant under a different policy, create another `OperatingPolicy` and change this one field (`kubectl edit plant tep`). The operator re-evaluates immediately, and the violation counter restarts, because failures under the old policy say nothing about the new one. If the name doesn't exist, the plant goes to `Pending` with the reason `PolicyNotFound`.
 
-### `evaluationIntervalSeconds: 30` — [line 12](../../../tep-supervisor/local/k8s/tep/plant.yaml#L12)
+### `evaluationIntervalSeconds: 30` — [line 12](../../../tep-lab/local/k8s/tep/plant.yaml#L12)
 
-How often the operator re-evaluates the plant. Every 30 s it fetches fresh averages and writes a new verdict. If omitted, the default is 30 s ([plant_controller.go:73](../../../tep-operator/internal/controller/plant_controller.go#L73)).
+How often the operator re-evaluates the plant. Every 30 s it fetches fresh averages and writes a new verdict. If omitted, the default is 30 s ([plant_controller.go:73](../../../plant-supervisor/internal/controller/plant_controller.go#L73)).
 
 This interval works together with two fields of the policy:
 
@@ -58,7 +58,7 @@ A shorter interval makes the verdict react faster but writes to Kubernetes more 
 
 ## What the operator writes back — the `status`
 
-You never write the `status`; the operator fills it on every evaluation. This is what `kubectl get plant tep -o yaml` shows, and what the IHM's K8S SUPERVISOR panel displays ([PlantStatus, plant_types.go:107](../../../tep-operator/api/v1alpha1/plant_types.go#L107)):
+You never write the `status`; the operator fills it on every evaluation. This is what `kubectl get plant tep -o yaml` shows, and what the IHM's K8S SUPERVISOR panel displays ([PlantStatus, plant_types.go:107](../../../plant-supervisor/api/v1alpha1/plant_types.go#L107)):
 
 | Field | What it holds | In the IHM panel |
 |---|---|---|
@@ -83,11 +83,11 @@ Because the verdict is stored by Kubernetes, anyone can read it without talking 
 ## How to use it
 
 ```bash
-kubectl apply -f tep-supervisor/local/k8s/tep/plant.yaml   # create or update the Plant
+kubectl apply -f tep-lab/local/k8s/tep/plant.yaml   # create or update the Plant
 kubectl get plants                                         # one line: policy, J, unit, phase
 kubectl describe plant tep                                 # conditions with reason and message
 kubectl get plant tep -o yaml                              # the whole status, including each term of J
 kubectl edit plant tep                                     # change policyRef, interval or historian
 ```
 
-`setup.sh` applies this file together with the cost function and the policy ([setup.sh:66](../../../tep-supervisor/local/setup.sh#L66)), so after a fresh setup the Plant already exists. The order of applying the three files doesn't matter: if the Plant arrives before its policy, it stays `Pending` (`PolicyNotFound`) and becomes `Compliant` or `NonCompliant` as soon as the policy appears.
+`setup.sh` applies this file together with the cost function and the policy ([setup.sh:66](../../../tep-lab/local/setup.sh#L66)), so after a fresh setup the Plant already exists. The order of applying the three files doesn't matter: if the Plant arrives before its policy, it stays `Pending` (`PolicyNotFound`) and becomes `Compliant` or `NonCompliant` as soon as the policy appears.

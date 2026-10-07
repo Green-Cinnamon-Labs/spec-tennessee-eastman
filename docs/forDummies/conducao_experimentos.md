@@ -15,9 +15,9 @@ cd c:/Projetos/tep/tep-ihm && poetry lock
 docker build -t tep-ihm:latest c:/Projetos/tep/tep-ihm
 ```
 
-* 1.3. Operator — rebuildar se `tep-operator` mudar
+* 1.3. Operator — rebuildar se `plant-supervisor` mudar
 ```bash
-docker build -t plc-operator:latest c:/Projetos/tep/tep-operator
+docker build -t plc-operator:latest c:/Projetos/tep/plant-supervisor
 ```
 
 * 1.4. Gerar deepcopy e CRDs — só se mudar os types do CRD
@@ -31,11 +31,11 @@ make generate manifests
 
 ```bash
 # 1. Subir planta + IHM
-docker compose -f c:/Projetos/tep/tep-supervisor/local/docker-compose.yml up -d
+docker compose -f c:/Projetos/tep/tep-lab/local/docker-compose.yml up -d
 
 # 2. Criar cluster Kind + carregar operator + deployar
 #    Requer plc-operator:latest já buildada localmente
-bash c:/Projetos/tep/tep-supervisor/local/setup.sh
+bash c:/Projetos/tep/tep-lab/local/setup.sh
 ```
 
 
@@ -48,7 +48,7 @@ docker start tep-lab-control-plane
 # Se `tep-lab-control-plane` não existir (cluster foi deletado), voltar ao passo 2.
 
 # Subir planta + IHM de novo
-docker compose -f c:/Projetos/tep/tep-supervisor/local/docker-compose.yml up -d
+docker compose -f c:/Projetos/tep/tep-lab/local/docker-compose.yml up -d
 ```
 
 
@@ -62,14 +62,14 @@ kubectl rollout restart deployment/plc-operator
 
 ```bash
 # Após rebuild da IHM, recriar só o container da IHM
-docker compose -f c:/Projetos/tep/tep-supervisor/local/docker-compose.yml up -d --force-recreate tep-ihm
+docker compose -f c:/Projetos/tep/tep-lab/local/docker-compose.yml up -d --force-recreate tep-ihm
 ```
 
 
 ## 5. Parar tudo
 
 ```bash
-docker compose -f c:/Projetos/tep/tep-supervisor/local/docker-compose.yml down
+docker compose -f c:/Projetos/tep/tep-lab/local/docker-compose.yml down
 kind delete cluster --name tep-lab
 ```
 

@@ -38,10 +38,10 @@ poetry run python src/server.py
 # RECORD_CSV_PATH=/data/recording.csv  # caminho para salvar CSV (padrão)
 ```
 
-### tep-operator (Go / Kubebuilder)
+### plant-supervisor (Go / Kubebuilder)
 
 ```bash
-cd tep-operator
+cd plant-supervisor
 
 make build              # compila o binário em bin/manager
 make run                # roda o controller localmente (sem Docker)
@@ -59,24 +59,24 @@ make generate manifests # gera DeepCopy + CRDs (controller-gen requer Linux)
 ```bash
 docker build -t te-plant:latest    tep-plant/
 docker build -t tep-ihm:latest     tep-ihm/
-docker build -t plc-operator:latest tep-operator/
+docker build -t plc-operator:latest plant-supervisor/
 ```
 
 ### Lab completo (subir tudo)
 
 ```bash
 # 1. Subir planta + IHM:
-docker compose -f tep-supervisor/local/docker-compose.yml up -d
+docker compose -f tep-lab/local/docker-compose.yml up -d
 
 # 2. Criar cluster Kind + carregar operator + deployar:
-bash tep-supervisor/local/setup.sh
+bash tep-lab/local/setup.sh
 ```
 
 ### Retomar após reinício do Docker
 
 ```bash
 docker start tep-lab-control-plane
-docker compose -f tep-supervisor/local/docker-compose.yml up -d
+docker compose -f tep-lab/local/docker-compose.yml up -d
 ```
 
 ### Atualizar imagem no cluster existente
@@ -87,7 +87,7 @@ kind load docker-image plc-operator:latest --name tep-lab
 kubectl rollout restart deployment/plc-operator
 
 # IHM:
-docker compose -f tep-supervisor/local/docker-compose.yml up -d --force-recreate tep-ihm
+docker compose -f tep-lab/local/docker-compose.yml up -d --force-recreate tep-ihm
 ```
 
 ### Diagnóstico rápido

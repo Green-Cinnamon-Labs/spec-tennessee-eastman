@@ -1,6 +1,6 @@
 # The TEP Mode 1 policy — `policy-mode1.yaml` explained (Issue #77)
 
-**File:** [tep-supervisor/local/k8s/tep/policy-mode1.yaml](../../../tep-supervisor/local/k8s/tep/policy-mode1.yaml)
+**File:** [tep-lab/local/k8s/tep/policy-mode1.yaml](../../../tep-lab/local/k8s/tep/policy-mode1.yaml)
 **Sources:** Downs & Vogel (1993), Tables 4, 5 and 6 (base case and operating constraints)
 **Date:** 2026-10-07
 
@@ -16,33 +16,33 @@ Downs & Vogel define one cost function but six **operating modes** (combinations
 
 ## Field by field
 
-### `costFunctionRef: tep-downs-vogel` — [line 13](../../../tep-supervisor/local/k8s/tep/policy-mode1.yaml#L13)
+### `costFunctionRef: tep-downs-vogel` — [line 13](../../../tep-lab/local/k8s/tep/policy-mode1.yaml#L13)
 
 Which cost function judges this policy, by name. It must be a `CostFunction` in the same namespace. This is the only required field: without it the operator would have no J to compute. If the name doesn't exist, the plant goes to `Pending` with the reason `CostFunctionNotFound`.
 
-### `description` — [line 14](../../../tep-supervisor/local/k8s/tep/policy-mode1.yaml#L14)
+### `description` — [line 14](../../../tep-lab/local/k8s/tep/policy-mode1.yaml#L14)
 
 Free text for humans. It has no effect on the verdict; it exists so that `kubectl get op -o yaml` tells you what the policy is meant to represent.
 
-### `windowSeconds: 60` — [line 15](../../../tep-supervisor/local/k8s/tep/policy-mode1.yaml#L15)
+### `windowSeconds: 60` — [line 15](../../../tep-lab/local/k8s/tep/policy-mode1.yaml#L15)
 
 How much time each signal is averaged over before it is judged. The operator asks the historian for the mean of each signal over the last 60 seconds, and everything below (J, targets, limits) is computed on those means. Averaging exists to filter measurement noise and fast oscillations, so the verdict reacts to the process, not to a single sample.
 
 The window is in **wall-clock** time. The plant runs at about 2× real time, so 60 s covers about 2 simulated minutes. That is short compared to the TEP's slow dynamics (levels and compositions take hours of simulated time to settle), which is one of the decisions to revisit below.
 
-### `maxCost: 179.0` — [line 16](../../../tep-supervisor/local/k8s/tep/policy-mode1.yaml#L16)
+### `maxCost: 179.0` — [line 16](../../../tep-lab/local/k8s/tep/policy-mode1.yaml#L16)
 
 The **budget** for J, in the cost function's unit ($/h). If the averaged J goes above it, the condition `CostWithinBudget` becomes `False`. This is the economic part of the verdict: the plant may be producing the right thing within its limits and still be operating too expensively.
 
 179 is **not** a number from the paper. It is a policy choice: about 5 % above the paper's base-case reference of 170.6 $/h. The field is optional; without it J is still computed and shown, but never judged.
 
-### `persistenceEvaluations: 3` — [line 17](../../../tep-supervisor/local/k8s/tep/policy-mode1.yaml#L17)
+### `persistenceEvaluations: 3` — [line 17](../../../tep-lab/local/k8s/tep/policy-mode1.yaml#L17)
 
 How many failing evaluations **in a row** are needed before the plant is declared `NonCompliant`. One bad evaluation only increments a counter (visible as "Violações" in the IHM); a passing one resets it. With the Plant evaluated every 30 s, 3 means the problem has to last about 90 s.
 
 The idea comes from control-loop performance monitoring (Bradu et al. 2018, Cap 2): an alarm should mean a sustained problem, not a transient. Without it, a single noisy window during a disturbance would flip the verdict back and forth.
 
-### `targets` — [lines 18–27](../../../tep-supervisor/local/k8s/tep/policy-mode1.yaml#L18)
+### `targets` — [lines 18–27](../../../tep-lab/local/k8s/tep/policy-mode1.yaml#L18)
 
 What the plant must **deliver**. Each target is a signal, a value and a tolerance in percent: the averaged signal must stay within `value ± value × tolerance / 100`. If any target is missed, `TargetsMet` becomes `False`.
 
@@ -56,7 +56,7 @@ These are the base-case values of Tables 4 and 5, i.e. Mode 1's "order": produce
 
 Mode 1's G/H ratio is not one signal, so it is expressed as two separate targets on G and H. This is an approximation: the ratio can drift a little while each component stays inside its own band.
 
-### `constraints` — [lines 28–41](../../../tep-supervisor/local/k8s/tep/policy-mode1.yaml#L28)
+### `constraints` — [lines 28–41](../../../tep-lab/local/k8s/tep/policy-mode1.yaml#L28)
 
 The **operating envelope**: signals that must stay inside `[min, max]`. Either bound can be omitted. If any limit is broken, `ConstraintsSatisfied` becomes `False`.
 
@@ -81,7 +81,7 @@ Every evaluation, for the active policy:
 5. If any of the three failed, increment the violation counter; otherwise reset it.
 6. If the counter reached `persistenceEvaluations`, the plant is `NonCompliant` (`PolicyCompliant = False`); otherwise `Compliant`.
 
-The result is what you see in the IHM's K8S SUPERVISOR panel and in `kubectl describe plant tep`. The code is [Evaluate](../../../tep-operator/internal/evaluate/evaluate.go#L86) and the persistence rule [NextViolations](../../../tep-operator/internal/evaluate/evaluate.go#L130).
+The result is what you see in the IHM's K8S SUPERVISOR panel and in `kubectl describe plant tep`. The code is [Evaluate](../../../plant-supervisor/internal/evaluate/evaluate.go#L86) and the persistence rule [NextViolations](../../../plant-supervisor/internal/evaluate/evaluate.go#L130).
 
 ## Decisions to revisit
 
@@ -96,4 +96,4 @@ These are engineering choices, not facts from the paper, and several of them dec
 
 ## How to change it
 
-Edit the file and re-apply it: `kubectl apply -f tep-supervisor/local/k8s/tep/policy-mode1.yaml`, or change a single field in place, e.g. `kubectl patch operatingpolicy tep-mode1 --type merge -p '{"spec":{"maxCost":150}}'`. The operator re-evaluates immediately and the violation counter starts counting from the new rules. To try another mode, create a second `OperatingPolicy` with a different name and point the Plant to it (`policyRef` in [plant.yaml](../../../tep-supervisor/local/k8s/tep/plant.yaml)); the counter restarts when the policy changes.
+Edit the file and re-apply it: `kubectl apply -f tep-lab/local/k8s/tep/policy-mode1.yaml`, or change a single field in place, e.g. `kubectl patch operatingpolicy tep-mode1 --type merge -p '{"spec":{"maxCost":150}}'`. The operator re-evaluates immediately and the violation counter starts counting from the new rules. To try another mode, create a second `OperatingPolicy` with a different name and point the Plant to it (`policyRef` in [plant.yaml](../../../tep-lab/local/k8s/tep/plant.yaml)); the counter restarts when the policy changes.

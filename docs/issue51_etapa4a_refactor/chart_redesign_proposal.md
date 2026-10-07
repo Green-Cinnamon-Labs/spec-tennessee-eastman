@@ -40,7 +40,7 @@ O objetivo **não** é análise profunda. É demonstrar, durante experimentos e 
 
 > Variável crítica desvia → atuador responde → sistema retorna à faixa segura.
 
-Esse padrão é especialmente importante para a narrativa do laboratório: mostrar que o operador Kubernetes (`tep-operator`) e os controladores PID estão intervindo ativamente. O mini-gráfico torna essa intervenção visível sem que o observador precise olhar tabelas ou consoles.
+Esse padrão é especialmente importante para a narrativa do laboratório: mostrar que o operador Kubernetes (`plant-supervisor`) e os controladores PID estão intervindo ativamente. O mini-gráfico torna essa intervenção visível sem que o observador precise olhar tabelas ou consoles.
 
 Cada gráfico de controle deve mostrar **ao menos duas séries complementares** quando existir uma malha de controle clara: a variável controlada (XMEAS) e a variável manipulada (XMV). Isso transforma o mini-gráfico de um indicador passivo em evidência visual de uma malha fechada funcionando.
 

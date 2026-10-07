@@ -21,12 +21,12 @@
 			"path": "../tep-historian"
 		},
 		{
-			"name": "tep-operator",
-			"path": "../tep-operator"
+			"name": "plant-supervisor",
+			"path": "../plant-supervisor"
 		},
 		{
-			"name": "tep-supervisor",
-			"path": "../tep-supervisor"
+			"name": "tep-lab",
+			"path": "../tep-lab"
 		}
 	],
 	"settings": {}

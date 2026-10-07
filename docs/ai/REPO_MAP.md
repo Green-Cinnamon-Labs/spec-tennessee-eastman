@@ -13,8 +13,8 @@ Antes de abrir arquivos, classifique a tarefa em um dos alvos:
 | Issue, decisão, roadmap, experimento, texto de TCC | `spec-tennessee-eastman` | Issue indicada ou `docs/`                 |
 | Modelo TEP, RK4, XMEAS, XMV, IDV, snapshot, CSV    | `tep-plant`              | `tennessee-eastman-service/`              |
 | Dashboard, WebSocket, gráficos, FastAPI            | `tep-ihm`                | `src/`, `proto/`, arquivos de frontend    |
-| CRD, controller, reconciliation, Kubebuilder       | `tep-operator`           | `api/`, `internal/controller/`, `config/` |
-| Docker, Kind, deploy local, scripts                | `tep-supervisor`         | `local/`, `docker-compose.yml`, scripts   |
+| CRD, controller, reconciliation, Kubebuilder       | `plant-supervisor`           | `api/`, `internal/controller/`, `config/` |
+| Docker, Kind, deploy local, scripts                | `tep-lab`         | `local/`, `docker-compose.yml`, scripts   |
 
 ## Protocolo de leitura
 

@@ -47,7 +47,7 @@ Então essas API's de integração gRPC devem ser no padrão OPC-UA. Eu penso qu
 Todos os 3 — para ser sincero estou na dúvida a respeito do CRD k8s: 
 - https://github.com/Green-Cinnamon-Labs/tep-plant
 - https://github.com/Green-Cinnamon-Labs/tep-ihm
-- https://github.com/Green-Cinnamon-Labs/tep-operator
+- https://github.com/Green-Cinnamon-Labs/plant-supervisor
 
 O k8s em si, no meu caso é o `kind`, não precisa de nada. É a instalação do CRD que o dará esse poder. Eu precise talvez elaborar um pouco algumas das abstrações que discuto em `Diagnóstico de Qualidade de Malhas` — C:\projetos\pessoal\tep-monografia\latex\trabalho\Cap2-referencialteorico.tex. Talvez eu precise fazer algumas coisas bem básicas nesse sentido só para implementar uma política básica de supervisão.
 

@@ -123,7 +123,7 @@ tep-ihm container
 └── /data/sessions.db        ← SQLite com todas as sessões
 ```
 
-Se você quer persistir entre restarts do container, o volume `/data` precisa estar mapeado no `docker-compose.yml` (já configurado no `tep-supervisor`).
+Se você quer persistir entre restarts do container, o volume `/data` precisa estar mapeado no `docker-compose.yml` (já configurado no `tep-lab`).
 
 ---
 

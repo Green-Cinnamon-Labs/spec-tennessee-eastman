@@ -7,8 +7,8 @@
 | `spec-tennessee-eastman` | — (sem código)   | Especificações, registro de experimentos, tarefas abertas       |
 | `tep-plant`              | Rust + Python    | Simulador da planta + servidor gRPC `:50051` + análise de dados |
 | `tep-ihm`                | Python (FastAPI) | Dashboard web em tempo real `:8080`                             |
-| `tep-operator`           | Go (Kubebuilder) | Operator Kubernetes para controle supervisório                  |
-| `tep-supervisor`         | Shell + YAML     | Infraestrutura local (Docker Compose + Kind)                    |
+| `plant-supervisor`           | Go (Kubebuilder) | Operator Kubernetes para controle supervisório                  |
+| `tep-lab`         | Shell + YAML     | Infraestrutura local (Docker Compose + Kind)                    |
 
 
 ## Arquitetura
@@ -53,11 +53,11 @@ Browser ──WebSocket──► tep-ihm (FastAPI :8080)
 - O arquivo `.proto` canônico fica em:
   - `tep-plant`
 - Cópias manuais devem ser mantidas em:
-  - `tep-operator/proto/`
+  - `plant-supervisor/proto/`
   - `tep-ihm/proto/`
 - Quando o `.proto` mudar:
   - regenerar stubs no `tep-plant`;
-  - regenerar stubs no `tep-operator`;
+  - regenerar stubs no `plant-supervisor`;
   - regenerar stubs no `tep-ihm`.
 
 ### 3. Estado da simulação

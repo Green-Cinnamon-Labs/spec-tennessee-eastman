@@ -1,6 +1,6 @@
 # Registro: WSL2, protobuf e rebuild do operator
 
-Eu quis usar o WSL2 para facilitar a regeneracao dos arquivos protobuf do `tep-operator`.
+Eu quis usar o WSL2 para facilitar a regeneracao dos arquivos protobuf do `plant-supervisor`.
 O objetivo era resolver o crash do pod `plc-operator` antes de continuar os experimentos.
 
 ## Contexto
@@ -46,7 +46,7 @@ Esse usuario e local da distro Linux e nao precisa ser igual ao usuario do Windo
 Depois de entrar no Ubuntu, fui para o repo do operator:
 
 ```bash
-cd /mnt/c/Projetos/tep/tep-operator
+cd /mnt/c/Projetos/tep/plant-supervisor
 ```
 
 Atualizei a lista de pacotes:
@@ -138,16 +138,16 @@ Cada erro indicava uma dependencia ausente no Ubuntu recem-instalado.
 Depois apareceu um erro de modulo antigo:
 
 ```text
-generated file does not match prefix "github.com/Green-Cinnamon-Labs/tep-operator"
+generated file does not match prefix "github.com/Green-Cinnamon-Labs/plant-supervisor"
 ```
 
 O `.proto` ainda apontava para o modulo antigo `cluster-api-provider-plc`.
-Por isso o codigo gerado nao batia com o modulo atual `tep-operator`.
+Por isso o codigo gerado nao batia com o modulo atual `plant-supervisor`.
 
-A correcao foi ajustar o `option go_package` em `tep-operator/proto/tep/v1/plant.proto`:
+A correcao foi ajustar o `option go_package` em `plant-supervisor/proto/tep/v1/plant.proto`:
 
 ```proto
-option go_package = "github.com/Green-Cinnamon-Labs/tep-operator/internal/grpc/gen/tepv1;tepv1";
+option go_package = "github.com/Green-Cinnamon-Labs/plant-supervisor/internal/grpc/gen/tepv1;tepv1";
 ```
 
 Depois disso, `make proto` terminou sem erro.
@@ -161,7 +161,7 @@ So mudar arquivos locais nao altera o container que ja esta rodando.
 No Windows/PowerShell, o build usado foi:
 
 ```powershell
-docker build -t plc-operator:latest c:/Projetos/tep/tep-operator
+docker build -t plc-operator:latest c:/Projetos/tep/plant-supervisor
 ```
 
 Esse comando cria uma nova imagem `plc-operator:latest` no Docker Desktop.
@@ -193,7 +193,7 @@ O segundo espera o rollout terminar ou falha se o operator continuar quebrando.
 
 ## Ajuste no setup.sh
 
-O script `tep-supervisor/local/setup.sh` ja criava/validava o Kind, carregava a imagem e aplicava os manifests.
+O script `tep-lab/local/setup.sh` ja criava/validava o Kind, carregava a imagem e aplicava os manifests.
 Mas ele nao garantia que o pod existente seria recriado apos carregar uma imagem nova.
 
 Por isso foi adicionado ao final do script:
@@ -217,20 +217,20 @@ Nao derruba `te-plant`, `tep-ihm` nem outros containers do Docker.
 Quando o protobuf do operator mudar:
 
 ```bash
-cd /mnt/c/Projetos/tep/tep-operator
+cd /mnt/c/Projetos/tep/plant-supervisor
 make proto
 ```
 
 Depois, reconstruir a imagem:
 
 ```powershell
-docker build -t plc-operator:latest c:/Projetos/tep/tep-operator
+docker build -t plc-operator:latest c:/Projetos/tep/plant-supervisor
 ```
 
 Depois, rodar o setup local:
 
 ```bash
-bash c:/Projetos/tep/tep-supervisor/local/setup.sh
+bash c:/Projetos/tep/tep-lab/local/setup.sh
 ```
 
 Com o ajuste no `setup.sh`, ele carrega a imagem no Kind e reinicia o operator.

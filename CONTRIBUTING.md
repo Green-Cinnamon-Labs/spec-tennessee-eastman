@@ -1,6 +1,6 @@
 # CONTRIBUTING — Architecture and development definitions
 
-This is the lab's main guide to architecture and development decisions — the mandatory entry point for anyone about to touch the technical repositories (`tep-plant`, `monjolo`, and eventually `tep-ihm`/`tep-operator` once they migrate to OPC-UA). It records, in numbered articles, the decisions currently in force for the `tep-plant`/`monjolo` modeling. It follows the structure defined in `docs/padrao_documentacao.md` — read that first if the notation (Art./§/Item) isn't familiar. That document itself is still in Portuguese.
+This is the lab's main guide to architecture and development decisions — the mandatory entry point for anyone about to touch the technical repositories (`tep-plant`, `monjolo`, and eventually `tep-ihm`/`plant-supervisor` once they migrate to OPC-UA). It records, in numbered articles, the decisions currently in force for the `tep-plant`/`monjolo` modeling. It follows the structure defined in `docs/padrao_documentacao.md` — read that first if the notation (Art./§/Item) isn't familiar. That document itself is still in Portuguese.
 
 It started out as the plan for the Composite + semantic Registry refactor (issue #55), but it stopped being a document specific to that issue: it now covers the lab's architecture as a whole, and keeps receiving new/amended articles as the architecture evolves. `docs/issue55_opcua_refactor/eval_refactor.md` keeps the evaluation/history that led here.
 

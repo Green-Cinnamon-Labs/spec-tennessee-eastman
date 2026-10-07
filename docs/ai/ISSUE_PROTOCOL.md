@@ -36,8 +36,8 @@ Antes de abrir arquivos ou editar código, o Claude deve:
 | documentação, decisões, issues, experimentos | `spec-tennessee-eastman` |
 | planta, Rust, RK4, XMEAS, XMV, IDV, gRPC     | `tep-plant`              |
 | dashboard, FastAPI, WebSocket, Chart.js      | `tep-ihm`                |
-| CRD, PLCMachine, Kubebuilder, reconcile      | `tep-operator`           |
-| Docker Compose, Kind, scripts, ambiente      | `tep-supervisor`         |
+| CRD, PLCMachine, Kubebuilder, reconcile      | `plant-supervisor`           |
+| Docker Compose, Kind, scripts, ambiente      | `tep-lab`         |
 
 ---
 

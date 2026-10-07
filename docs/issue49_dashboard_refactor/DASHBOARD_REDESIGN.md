@@ -601,7 +601,7 @@ Se alguma dessas observações **não ocorrer**, a distúrbio não está sendo a
 - `tep-plant/docs/02-glossario.md` — Nomenclatura de unidades e grandezas
 - `tep-plant/docs/05-disturbios.md` — Definição dos 20 IDVs
 - `tep-ihm/static/app.js` — XMEAS_META, XMV_META (linhas 12–70)
-- `tep-supervisor/local/docker-compose.yml` — STEP_DELAY_MS para validação experimental
+- `tep-lab/local/docker-compose.yml` — STEP_DELAY_MS para validação experimental
 
 ---
 

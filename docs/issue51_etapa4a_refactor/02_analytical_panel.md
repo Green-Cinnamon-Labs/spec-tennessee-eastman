@@ -36,7 +36,7 @@ Esta é a decisão mais importante da entrega. Três caminhos possíveis:
 ### Opção A — InfluxDB (time series database dedicado)
 - Protocolo de ingestão nativo (line protocol), cliente Rust disponível.
 - Query via Flux ou InfluxQL — poderoso para ciência de dados.
-- Docker Compose: adicionar container `influxdb` em `tep-supervisor`.
+- Docker Compose: adicionar container `influxdb` em `tep-lab`.
 - **Trade-off:** infraestrutura nova, overhead de operação.
 
 ### Opção B — TimescaleDB (PostgreSQL + extensão time series)
@@ -157,7 +157,7 @@ GET /api/export?format=csv
 | `tep-ihm`        | `main.py`                    | Registrar router de history                     |
 | `tep-ihm`        | `templates/index.html`       | Aba Analytics + ECharts                         |
 | `tep-ihm`        | `static/analytics.js` (novo) | Variable picker + ECharts setup                 |
-| `tep-supervisor` | `docker-compose.yml`         | Volume para SQLite (ou novo container InfluxDB) |
+| `tep-lab` | `docker-compose.yml`         | Volume para SQLite (ou novo container InfluxDB) |
 
 ---
 
