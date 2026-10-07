@@ -6,81 +6,105 @@
 
 ---
 
-Everything built on the Kubernetes side for the epic, with a link to where each piece lives. Links are relative to this file and open in VS Code when the sibling repos (`tep-operator`, `tep-supervisor`, `tep-ihm`, `tep-historian`) are checked out on `main` next to `spec-tennessee-eastman` (everything below is merged). On GitHub, links into another repo don't resolve. The reasoning behind the design is in [tep-plant/docs/18-sobre-k8s-e-funcao-custo.md](../../../tep-plant/docs/18-sobre-k8s-e-funcao-custo.md).
+This document lists everything that was built on the Kubernetes side of the epic, explains why each piece exists, and links to where it lives. The thesis behind it is simple to state: Kubernetes should be able to follow the plant's economic state — the operating cost J from Downs & Vogel (1993) — against a policy that someone declared, and say whether the plant is complying. The reasoning that led to this design, written as a conversation, is in [tep-plant/docs/18-sobre-k8s-e-funcao-custo.md](../../../tep-plant/docs/18-sobre-k8s-e-funcao-custo.md).
+
+Links are relative to this file and open in VS Code when the sibling repos (`tep-operator`, `tep-supervisor`, `tep-ihm`, `tep-historian`) are checked out on `main` next to `spec-tennessee-eastman`. On GitHub, links into another repo don't resolve.
 
 ```
 tep-plant ──OPC-UA──▶ tep-historian ◀──HTTP── tep-operator (Pod in Kind) ──▶ Plant.status ──▶ kubectl / tep-ihm
 ```
 
+Read the diagram as a chain of translations. The plant only produces raw signals; the historian turns raw signals into averages over a time window; the operator turns averages into a verdict ("the plant complies / does not comply"); Kubernetes stores that verdict and notifies whoever is watching (you with `kubectl`, or the IHM dashboard). Kubernetes itself never sees a raw signal.
+
+## Kubernetes in one minute — the words used below
+
+- **Cluster** — a running Kubernetes: a database of objects plus an API to read and change them. Here the cluster is **Kind** ("Kubernetes in Docker"), a whole cluster packed into one Docker container on your machine, named `tep-lab`.
+- **Object / manifest** — everything in Kubernetes is an object described in YAML (the manifest). You `kubectl apply -f file.yaml` to create or change it, and `kubectl get` to read it back.
+- **`spec` and `status`** — every object has two halves. `spec` is what *you* want (declared by a person), `status` is what is *observed* (written by a program). This split is the core of the thesis: the policy goes in `spec`, the verdict comes back in `status`.
+- **CRD (Custom Resource Definition)** — Kubernetes only knows built-in object types (Pods, Deployments…). A CRD teaches it a new type, with its fields and validation. We created three: `CostFunction`, `OperatingPolicy` and `Plant`.
+- **Controller / operator** — a program running inside the cluster that watches objects and acts on them in a loop (the *reconcile* loop). An *operator* is a controller for a specific domain. Ours reads the policy, evaluates the plant and writes the verdict.
+- **Condition** — a standard way of writing facts in `status`: a type (e.g. `PolicyCompliant`), a value (`True` / `False` / `Unknown`), a reason and a message. Tools and dashboards know how to read them.
+- **RBAC** — Kubernetes' permission system. A program running in the cluster can only read or write what its role allows.
+- **Kubebuilder / controller-gen** — the tooling that generates the boilerplate: from Go types it produces the CRD YAMLs, the permission files and some copy code. That is why some files in `tep-operator` are "generated, don't edit".
+
 ## Status
 
-| Issue | What                            | Merged                     | State  |
-| ----- | ------------------------------- | -------------------------- | ------ |
-| #78   | Historian                       | `tep-historian` main, PR #1 | Closed |
-| #79   | Operator: CRDs and J evaluation | tep-operator#1             | Closed |
-| #80   | TEP manifests and Kind infra    | tep-supervisor#25          | Closed |
-| #81   | IHM verdict panel               | tep-ihm#2                  | Closed |
-| #82   | Experiment under disturbance    | —                          | Open, not started |
+| Issue | What                            | Merged                      | State             |
+| ----- | ------------------------------- | --------------------------- | ----------------- |
+| #78   | Historian                       | `tep-historian` main, PR #1 | Closed            |
+| #79   | Operator: CRDs and J evaluation | tep-operator#1              | Closed            |
+| #80   | TEP manifests and Kind infra    | tep-supervisor#25           | Closed            |
+| #81   | IHM verdict panel               | tep-ihm#2                   | Closed            |
+| #82   | Experiment under disturbance    | —                           | Open, not started |
 
-The epic #77 stays open until #82 is done. #64 (operator gRPC → OPC-UA) was closed as absorbed by #79: the operator no longer talks to the plant at all. The design note [tep-plant/docs/18](../../../tep-plant/docs/18-sobre-k8s-e-funcao-custo.md) was merged with tep-plant#2.
+The epic #77 stays open until #82 is done. #64 (operator gRPC → OPC-UA) was closed as absorbed by #79: the operator no longer talks to the plant at all, so there was nothing left to migrate. The design note [tep-plant/docs/18](../../../tep-plant/docs/18-sobre-k8s-e-funcao-custo.md) was merged with tep-plant#2.
 
 ### What's next — #82
 
-The experiment that produces thesis evidence: switch on a disturbance (e.g. IDV6, A feed loss) and watch J rise and `PolicyCompliant` flip. Open point: IDV6 takes hours of simulated time to reach the plant's limits, and the plant runs at about 2× real time, so the run length and/or simulation speed need deciding first. Also worth recording: J at nominal operation comes out around 166 $/h against the paper's 170.6 $/h (−2.5 %), a model-validation finding related to #19.
+This is the experiment that produces evidence for the thesis: switch on a disturbance (e.g. IDV6, loss of the A feed) and watch J rise and `PolicyCompliant` flip to `False`. The open point is time: IDV6 takes hours of *simulated* time to push the plant to its limits, and the plant runs at about 2× real time, so the run length and/or simulation speed must be decided first.
+
+Also worth recording: at nominal operation J comes out around 166 $/h, against 170.6 $/h in the paper (−2.5 %). That gap is a finding about how close the simulated plant is to the original, and it relates to #19 (validation against reference data).
 
 ## New object types (CRDs) — group `supervision.greenlabs.io/v1alpha1`
 
-- **`CostFunction`** (`kubectl get cf`) — the cost function J, declared in YAML as a list of terms, each `coefficient × signal(s)`. Type: [costfunction_types.go:72](../../../tep-operator/api/v1alpha1/costfunction_types.go#L72); one term: [CostTerm, line 27](../../../tep-operator/api/v1alpha1/costfunction_types.go#L27); short name `cf`: [line 66](../../../tep-operator/api/v1alpha1/costfunction_types.go#L66).
-- **`OperatingPolicy`** (`kubectl get op`) — one way of operating the plant: cost budget (`maxCost`), targets with ±% tolerance, min/max constraints, averaging window and the persistence rule. Type: [operatingpolicy_types.go:95](../../../tep-operator/api/v1alpha1/operatingpolicy_types.go#L95); fields: [OperatingPolicySpec, line 49](../../../tep-operator/api/v1alpha1/operatingpolicy_types.go#L49).
-- **`Plant`** (`kubectl get plants`) — the plant, pointing at the historian and the active policy. Type: [plant_types.go:149](../../../tep-operator/api/v1alpha1/plant_types.go#L149); what the user declares: [PlantSpec, line 24](../../../tep-operator/api/v1alpha1/plant_types.go#L24).
-- **The verdict** — `Plant.status`: J, the contribution of each term, the result of each target and constraint, phase `Compliant` / `NonCompliant` / `Pending`. [PlantStatus, line 107](../../../tep-operator/api/v1alpha1/plant_types.go#L107).
-- **5 conditions** — `DataAvailable`, `CostWithinBudget`, `TargetsMet`, `ConstraintsSatisfied`, `PolicyCompliant`. [plant_types.go:57](../../../tep-operator/api/v1alpha1/plant_types.go#L57).
-- **`kubectl get` columns** — e.g. `kubectl get plants` shows Policy, Cost, Unit, Phase. [plant_types.go:143](../../../tep-operator/api/v1alpha1/plant_types.go#L143).
-- **Validation in the CRD** — e.g. a cost function needs at least one term, a term needs at least one signal. [costfunction_types.go:51](../../../tep-operator/api/v1alpha1/costfunction_types.go#L51).
-- **Generated CRD YAMLs** — produced from the types by `make manifests`: [config/crd/bases/](../../../tep-operator/config/crd/bases/).
-- **Generic samples** (not TEP) — [config/samples/](../../../tep-operator/config/samples/).
+These are the three new kinds of object Kubernetes learned. They are deliberately generic: nothing in them says "TEP". The TEP-specific content goes into YAML files that use these types (see *TEP manifests* below), so the same operator could follow another plant with different YAML.
+
+- **`CostFunction`** (`kubectl get cf`) — the cost function J, declared in YAML as a list of terms, each `coefficient × signal(s)` — for example "price of A × purge flow × fraction of A in the purge". It exists so the formula is *data you declare*, not code: changing a price or adding a term means editing YAML, not recompiling the operator. Type: [costfunction_types.go:72](../../../tep-operator/api/v1alpha1/costfunction_types.go#L72); one term: [CostTerm, line 27](../../../tep-operator/api/v1alpha1/costfunction_types.go#L27); short name `cf`: [line 66](../../../tep-operator/api/v1alpha1/costfunction_types.go#L66).
+- **`OperatingPolicy`** (`kubectl get op`) — one way of operating the plant, the equivalent of a Downs & Vogel "mode" plus a cost budget. It holds the budget for J (`maxCost`), targets that a signal must stay close to (±%), limits a signal must stay within (min/max), the time window to average over, and the persistence rule. It is separate from the cost function because the same J can be judged by different policies — "base case", "maximum production" — and switching policy should not touch the formula. Type: [operatingpolicy_types.go:95](../../../tep-operator/api/v1alpha1/operatingpolicy_types.go#L95); fields: [OperatingPolicySpec, line 49](../../../tep-operator/api/v1alpha1/operatingpolicy_types.go#L49).
+- **`Plant`** (`kubectl get plants`) — the plant as Kubernetes sees it. Its `spec` is small on purpose: where the historian is and which policy is active right now. It is the object that ties everything together, and switching the plant to another policy is just changing one field (`policyRef`). Type: [plant_types.go:149](../../../tep-operator/api/v1alpha1/plant_types.go#L149); what you declare: [PlantSpec, line 24](../../../tep-operator/api/v1alpha1/plant_types.go#L24).
+- **The verdict — `Plant.status`** — what the operator writes back: the value of J, how much each term contributed to it, the result of each target and each limit, and an overall phase `Compliant` / `NonCompliant` / `Pending`. This is the "observed state" half of the thesis: it is stored by Kubernetes, so anyone can read it without talking to the operator, and it survives the operator restarting. [PlantStatus, line 107](../../../tep-operator/api/v1alpha1/plant_types.go#L107).
+- **5 conditions** — `DataAvailable`, `CostWithinBudget`, `TargetsMet`, `ConstraintsSatisfied` and `PolicyCompliant`. They split the verdict into separate questions, so when the plant is non-compliant you can see *why* (over budget? a limit broken? no data?). Using the standard condition format means generic Kubernetes tools can read them too. [plant_types.go:57](../../../tep-operator/api/v1alpha1/plant_types.go#L57).
+- **`kubectl get` columns** — `kubectl get plants` shows Policy, Cost, Unit and Phase directly in the table. Without this you would only see the name and age and would have to dump the whole YAML to find the verdict. [plant_types.go:143](../../../tep-operator/api/v1alpha1/plant_types.go#L143).
+- **Validation in the CRD** — Kubernetes rejects malformed objects at `kubectl apply` time, e.g. a cost function with no terms or a term with no signal. Catching the mistake when you apply the YAML is much clearer than the operator failing later with an odd error. [costfunction_types.go:51](../../../tep-operator/api/v1alpha1/costfunction_types.go#L51).
+- **Generated CRD YAMLs** — the actual files Kubernetes needs to learn the new types, produced from the Go types by `make manifests`. You don't edit them by hand; you change the Go type and regenerate, so code and cluster never disagree. [config/crd/bases/](../../../tep-operator/config/crd/bases/).
+- **Generic samples** (not TEP) — a tiny made-up plant (a pump, a heater, a tank) using the three types. They exist to show the operator is plant-agnostic and as a minimal example of the YAML shape. [config/samples/](../../../tep-operator/config/samples/).
 
 ## The operator (controller running in Kind)
 
-- **Generic** — no TEP knowledge in the Go code; everything plant-specific is in YAML.
-- **Evaluation loop** — Plant → policy → cost function → averages from the historian → J, targets, constraints → `status`, every 30 s. [Reconcile, plant_controller.go:65](../../../tep-operator/internal/controller/plant_controller.go#L65).
-- **The arithmetic** — pure functions, no Kubernetes: J, targets, constraints. [Evaluate, evaluate.go:86](../../../tep-operator/internal/evaluate/evaluate.go#L86); which signals to ask for: [RequiredSignals, line 51](../../../tep-operator/internal/evaluate/evaluate.go#L51).
-- **Persistence rule** (CLPM, Bradu 2018) — the verdict only flips after N failing evaluations in a row; the counter restarts on a policy change. [NextViolations, evaluate.go:130](../../../tep-operator/internal/evaluate/evaluate.go#L130), [NonCompliant, line 142](../../../tep-operator/internal/evaluate/evaluate.go#L142).
-- **No data → `Pending` with the reason** (historian unreachable, plant disconnected, missing signal, policy/cost function not found); verdict conditions become `Unknown` instead of keeping a stale value. [pending, plant_controller.go:155](../../../tep-operator/internal/controller/plant_controller.go#L155).
-- **Immediate re-evaluation** when a policy or cost function is edited, and own status writes are ignored so the operator doesn't retrigger itself. [SetupWithManager, plant_controller.go:242](../../../tep-operator/internal/controller/plant_controller.go#L242).
-- **Historian client** — HTTP `POST /aggregate`. [client.go:78](../../../tep-operator/internal/historian/client.go#L78).
-- **Minimal RBAC** — read policies and cost functions, write the Plant status. Markers: [plant_controller.go:60](../../../tep-operator/internal/controller/plant_controller.go#L60); generated role: [config/rbac/role.yaml](../../../tep-operator/config/rbac/role.yaml).
+The operator is the program that turns the declared policy into a verdict. It runs as a Pod inside the Kind cluster, reads the three object types, asks the historian for data and writes `Plant.status`. It never writes anything to the plant: this milestone is observation only.
+
+- **Generic** — there is no TEP knowledge in the Go code: no signal names, no prices, no limits. That knowledge lives only in the YAML, which is what lets the thesis claim "Kubernetes can follow an industrial plant", not just "this program follows the TEP".
+- **Evaluation loop** — every 30 s the operator reads the Plant, finds its policy, finds the policy's cost function, asks the historian for the averages of the signals they need, computes J, checks targets and limits, and writes the result in `status`. This is the standard Kubernetes reconcile loop: compare what was declared with what is observed, and record the outcome. [Reconcile, plant_controller.go:65](../../../tep-operator/internal/controller/plant_controller.go#L65).
+- **The arithmetic** — J, the targets and the limits are computed by plain functions that know nothing about Kubernetes or HTTP. Keeping the math separate means it can be tested directly against the paper's numbers, and the Kubernetes part is just plumbing around it. [Evaluate, evaluate.go:86](../../../tep-operator/internal/evaluate/evaluate.go#L86); which signals to ask the historian for: [RequiredSignals, line 51](../../../tep-operator/internal/evaluate/evaluate.go#L51).
+- **Persistence rule** — the verdict only flips to `NonCompliant` after N failing evaluations in a row (3 in the TEP policy), and the counter restarts when the policy changes. The idea comes from control-loop performance monitoring (Bradu et al. 2018, cited in Cap 2): a short transient should not raise an alarm, only a sustained problem. [NextViolations, evaluate.go:130](../../../tep-operator/internal/evaluate/evaluate.go#L130), [NonCompliant, line 142](../../../tep-operator/internal/evaluate/evaluate.go#L142).
+- **No data → `Pending`, with the reason** — if the historian is down, the plant is disconnected, a signal has no samples, or the policy/cost function doesn't exist, the plant goes to `Pending` and the reason is written in `DataAvailable`. The verdict conditions become `Unknown` instead of keeping the last `True`/`False`, because a stale "compliant" while blind would be a lie. [pending, plant_controller.go:155](../../../tep-operator/internal/controller/plant_controller.go#L155).
+- **Immediate re-evaluation, without looping on itself** — when you edit a policy or a cost function (`kubectl edit` / `kubectl patch`), every Plant is re-evaluated right away instead of waiting up to 30 s. At the same time, the operator ignores changes to `status` only, otherwise each verdict it writes would trigger yet another evaluation forever. [SetupWithManager, plant_controller.go:242](../../../tep-operator/internal/controller/plant_controller.go#L242).
+- **Historian client** — the operator gets data with one HTTP call, `POST /aggregate`, asking "average of these signals over the last N seconds". This is why the operator doesn't need to speak OPC-UA or know how the plant is built; any plant with a historian that answers this call could be followed. [client.go:78](../../../tep-operator/internal/historian/client.go#L78).
+- **Minimal permissions (RBAC)** — the operator may read policies and cost functions and write the Plant's status, nothing else. The permissions are declared next to the code that needs them and the role file is generated from them, so they can't drift apart. Markers: [plant_controller.go:60](../../../tep-operator/internal/controller/plant_controller.go#L60); generated role: [config/rbac/role.yaml](../../../tep-operator/config/rbac/role.yaml).
 
 ## Tests
 
-- **Downs & Vogel base case** — J = 170.6 $/h (Table 9). [TestDownsVogelBaseCaseCost, evaluate_test.go:84](../../../tep-operator/internal/evaluate/evaluate_test.go#L84).
-- **Targets, constraints, persistence** — [evaluate_test.go:98](../../../tep-operator/internal/evaluate/evaluate_test.go#L98), [line 161](../../../tep-operator/internal/evaluate/evaluate_test.go#L161).
-- **Controller against a real Kubernetes API (envtest)** — Compliant; flip after persistence; over budget; historian down; missing signal; policy not found. [plant_controller_test.go:117](../../../tep-operator/internal/controller/plant_controller_test.go#L117).
-- **End to end in Kind against the real plant** — `Compliant` at J ≈ 166 $/h; lowering `maxCost` to 150 flipped to `NonCompliant` on the 3rd evaluation and back on restore. (Manual run, 2026-10-02.)
+- **Downs & Vogel base case** — the test feeds the base-case values from the paper into the cost function and checks that J comes out at 170.6 $/h, the number in Table 9. It is the guarantee that the 12 terms and their unit conversions are right before any real plant is involved. [TestDownsVogelBaseCaseCost, evaluate_test.go:84](../../../tep-operator/internal/evaluate/evaluate_test.go#L84).
+- **Targets, limits and persistence** — tests that a signal outside its tolerance or limit fails, that missing bounds are allowed, and that the persistence counter flips, resets and restarts as intended. These are the rules the verdict depends on, so they are checked in isolation. [evaluate_test.go:98](../../../tep-operator/internal/evaluate/evaluate_test.go#L98), [line 161](../../../tep-operator/internal/evaluate/evaluate_test.go#L161).
+- **Controller against a real Kubernetes API (envtest)** — envtest starts a real Kubernetes API locally (without a full cluster) and the tests run the operator against it with a fake historian. They cover: compliant plant, flip after persistence, cost over budget, historian down, missing signal and missing policy. This checks the part the pure-math tests can't: that the right `status` and conditions actually get written. [plant_controller_test.go:117](../../../tep-operator/internal/controller/plant_controller_test.go#L117).
+- **End to end in Kind against the real plant** — the whole chain running: plant → historian → operator in Kind → `kubectl get plants`. Result: `Compliant` at J ≈ 166 $/h; lowering `maxCost` to 150 flipped the verdict to `NonCompliant` on the 3rd evaluation, and restoring it brought it back. (Manual run, 2026-10-02.)
 
 ## TEP manifests — what makes the generic operator about TEP
 
-- **Cost function** — the 12 terms of Downs & Vogel Table 9, each coefficient's derivation commented. [cost-function-downs-vogel.yaml](../../../tep-supervisor/local/k8s/tep/cost-function-downs-vogel.yaml).
-- **Mode 1 policy** — product flow and G/H targets (±5 %), Table 6 constraints, budget 179 $/h, persistence 3. [policy-mode1.yaml](../../../tep-supervisor/local/k8s/tep/policy-mode1.yaml).
-- **The plant** — `Plant tep`, historian at `host.docker.internal:8090`. [plant.yaml](../../../tep-supervisor/local/k8s/tep/plant.yaml).
+Because the operator is generic, all of the TEP lives in these three YAML files. They are the only place where Downs & Vogel's numbers appear.
+
+- **Cost function** — the 12 terms of Downs & Vogel's Table 9: raw material lost in the purge (7 components), raw material lost in the product (3), compressor power and steam. Each coefficient has a comment showing how it was derived (price × unit conversion), so anyone can check it against the paper. [cost-function-downs-vogel.yaml](../../../tep-supervisor/local/k8s/tep/cost-function-downs-vogel.yaml).
+- **Mode 1 policy** — the base case: product flow and G/H composition must stay within ±5 % of the paper's values, the normal operating limits of Table 6 must hold (reactor pressure, temperature, vessel levels), J must stay under 179 $/h, and persistence is 3. The budget of 179 is a choice, about 5 % above the paper's 170.6, not a number from the paper. [policy-mode1.yaml](../../../tep-supervisor/local/k8s/tep/policy-mode1.yaml).
+- **The plant** — the `Plant tep` object: points at the historian (`host.docker.internal:8090`, which is how a Pod inside Kind reaches your machine) and sets Mode 1 as the active policy. To try another policy, you change `policyRef` here. [plant.yaml](../../../tep-supervisor/local/k8s/tep/plant.yaml).
 
 ## Cluster infrastructure (Kind)
 
-- **The 3 CRDs** bundled for the cluster — [crd.yaml](../../../tep-supervisor/local/k8s/crd.yaml).
-- **Operator Deployment, ServiceAccount, RBAC** — [operator-deployment.yaml](../../../tep-supervisor/local/k8s/operator-deployment.yaml).
-- **One-command setup** — creates `tep-lab`, loads the image, installs CRDs and operator, applies the TEP manifests. [setup.sh](../../../tep-supervisor/local/setup.sh); TEP step: [line 66](../../../tep-supervisor/local/setup.sh#L66).
-- **Compose for plant + historian + IHM** — [docker-compose.yml](../../../tep-supervisor/local/docker-compose.yml).
-- **How to run, step by step** — [local/README.md](../../../tep-supervisor/local/README.md).
+- **The 3 CRDs, bundled** — one file with the three generated CRDs, so the cluster can be taught the new types with a single `kubectl apply`. If the Go types change, this file is regenerated by copying from tep-operator. [crd.yaml](../../../tep-supervisor/local/k8s/crd.yaml).
+- **Operator Deployment, ServiceAccount, RBAC** — what makes the operator run inside the cluster: the Deployment keeps one Pod alive (and recreates it if it crashes), the ServiceAccount gives it an identity, and the RBAC rules give that identity its permissions. [operator-deployment.yaml](../../../tep-supervisor/local/k8s/operator-deployment.yaml).
+- **One-command setup** — `bash setup.sh` creates the `tep-lab` cluster if it doesn't exist, loads the operator image into it, installs the CRDs and the operator, and applies the TEP manifests. It exists so the whole Kubernetes side can be rebuilt from scratch in one step, e.g. after `kind delete cluster`. [setup.sh](../../../tep-supervisor/local/setup.sh); TEP step: [line 66](../../../tep-supervisor/local/setup.sh#L66).
+- **Compose for plant + historian + IHM** — an alternative way to run the three non-Kubernetes pieces as containers instead of from VS Code. On Windows, running them natively (F5) is simpler, because the plant's Docker image expects a Linux binary. [docker-compose.yml](../../../tep-supervisor/local/docker-compose.yml).
+- **How to run, step by step** — the practical guide: what to start, in which order, what to expect from `kubectl get plants`, and how to change the budget to see the verdict flip. [local/README.md](../../../tep-supervisor/local/README.md).
 
 ## Around Kubernetes
 
-- **Historian** — collects every OPC-UA signal, serves window statistics: [api.py:69 (`/aggregate`)](../../../tep-historian/src/tep_historian/api.py#L69), [buffer.py:43](../../../tep-historian/src/tep_historian/buffer.py#L43), [collector.py:60](../../../tep-historian/src/tep_historian/collector.py#L60).
-- **IHM reads the verdict from the Kubernetes API** (a watch on `plants`), not from the operator — [server.py:335](../../../tep-ihm/src/server.py#L335); panel: [app.js:180](../../../tep-ihm/static/dashboard/app.js#L180).
+- **Historian** — a small Python service that reads every signal from the plant over OPC-UA, keeps the last hour in memory, and answers "average / std / min / max of these signals over the last N seconds". It is the translator between the plant's world (protocols, raw values) and Kubernetes' world (verdicts), and it knows nothing about TEP either. [api.py:69 (`/aggregate`)](../../../tep-historian/src/tep_historian/api.py#L69), [buffer.py:43](../../../tep-historian/src/tep_historian/buffer.py#L43), [collector.py:60](../../../tep-historian/src/tep_historian/collector.py#L60).
+- **IHM reads the verdict from the Kubernetes API** — the dashboard's ⬡ K8S SUPERVISOR panel watches the `Plant` object directly in Kubernetes, not the operator. This is on purpose: Kubernetes is the single source of truth for the verdict, and the operator could be restarted or replaced without the dashboard noticing. [server.py:335](../../../tep-ihm/src/server.py#L335); panel: [app.js:180](../../../tep-ihm/static/dashboard/app.js#L180).
 
 ## Removed
 
-- `PLCMachine`, the gRPC client and the `.proto` files; the Makefile `proto` target, the Codespace notes and the `plc-operator` name.
+- **`PLCMachine`, the gRPC client and the `.proto` files** — the previous design, where the operator talked to the plant over gRPC and tried to retune controllers. That gRPC server no longer exists in tep-plant (which now speaks OPC-UA), so the old operator could not work anymore.
+- **Leftovers of that design** — the Makefile `proto` target, the Codespace notes and the old `plc-operator` name. They were removed so nothing in the repo points to a design that is gone.
 
 ## Documentation in tep-operator
 
-- [01 — Overview](../../../tep-operator/docs/01-visao-geral.md), [02 — Project anatomy](../../../tep-operator/docs/02-anatomia-do-projeto.md), [03 — CRDs](../../../tep-operator/docs/03-crds.md), [04 — Reconciliation](../../../tep-operator/docs/04-reconciliacao.md).
+- [01 — Overview](../../../tep-operator/docs/01-visao-geral.md): what the operator is and where it fits. [02 — Project anatomy](../../../tep-operator/docs/02-anatomia-do-projeto.md): which files you edit and which are generated. [03 — CRDs](../../../tep-operator/docs/03-crds.md): the three types field by field, with examples. [04 — Reconciliation](../../../tep-operator/docs/04-reconciliacao.md): one evaluation step by step.
