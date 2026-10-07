@@ -17,6 +17,10 @@
 			"path": "../tep-ihm"
 		},
 		{
+			"name": "tep-historian",
+			"path": "../tep-historian"
+		},
+		{
 			"name": "tep-operator",
 			"path": "../tep-operator"
 		},
