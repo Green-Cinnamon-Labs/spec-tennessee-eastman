@@ -8,7 +8,7 @@
 
 This file is the policy the plant is judged against. Where the cost function says *how to measure* the cost (see [cost_function_downs_vogel.md](cost_function_downs_vogel.md)), the policy says *what counts as operating well*: what the plant must deliver, which limits it must respect, how much it may cost, and how patient the verdict should be.
 
-It is a Kubernetes object of type `OperatingPolicy` (one of the three CRDs created in #79). Writing a policy is the control engineer's job: it is the place where operating knowledge — a production mode, an operating envelope, an economic budget — becomes something Kubernetes can check. The operator never invents any of these numbers; it only compares the plant against what is declared here.
+It is a Kubernetes object of type `OperatingPolicy` (one of the three CRDs created in #79). Writing a policy is the control engineer's job: it is the place where operating knowledge — a production mode, an operating envelope, an economic budget — becomes something Kubernetes can check. The supervisor never invents any of these numbers; it only compares the plant against what is declared here.
 
 ## Why a policy is separate from the cost function
 
@@ -18,7 +18,7 @@ Downs & Vogel define one cost function but six **operating modes** (combinations
 
 ### `costFunctionRef: tep-downs-vogel` — [line 13](../../../tep-lab/local/k8s/tep/policy-mode1.yaml#L13)
 
-Which cost function judges this policy, by name. It must be a `CostFunction` in the same namespace. This is the only required field: without it the operator would have no J to compute. If the name doesn't exist, the plant goes to `Pending` with the reason `CostFunctionNotFound`.
+Which cost function judges this policy, by name. It must be a `CostFunction` in the same namespace. This is the only required field: without it the supervisor would have no J to compute. If the name doesn't exist, the plant goes to `Pending` with the reason `CostFunctionNotFound`.
 
 ### `description` — [line 14](../../../tep-lab/local/k8s/tep/policy-mode1.yaml#L14)
 
@@ -26,7 +26,7 @@ Free text for humans. It has no effect on the verdict; it exists so that `kubect
 
 ### `windowSeconds: 60` — [line 15](../../../tep-lab/local/k8s/tep/policy-mode1.yaml#L15)
 
-How much time each signal is averaged over before it is judged. The operator asks the historian for the mean of each signal over the last 60 seconds, and everything below (J, targets, limits) is computed on those means. Averaging exists to filter measurement noise and fast oscillations, so the verdict reacts to the process, not to a single sample.
+How much time each signal is averaged over before it is judged. The supervisor asks the historian for the mean of each signal over the last 60 seconds, and everything below (J, targets, limits) is computed on those means. Averaging exists to filter measurement noise and fast oscillations, so the verdict reacts to the process, not to a single sample.
 
 The window is in **wall-clock** time. The plant runs at about 2× real time, so 60 s covers about 2 simulated minutes. That is short compared to the TEP's slow dynamics (levels and compositions take hours of simulated time to settle), which is one of the decisions to revisit below.
 
@@ -70,7 +70,7 @@ The **operating envelope**: signals that must stay inside `[min, max]`. Either b
 
 These are the **normal** operating limits of Table 6, deliberately not the shutdown limits. The policy's job is to say "the plant has left its normal envelope" before the plant's own interlock has to stop it; the shutdown itself is a separate mechanism in tep-plant (#70).
 
-## How the operator turns this into a verdict
+## How the supervisor turns this into a verdict
 
 Every evaluation, for the active policy:
 
@@ -96,4 +96,4 @@ These are engineering choices, not facts from the paper, and several of them dec
 
 ## How to change it
 
-Edit the file and re-apply it: `kubectl apply -f tep-lab/local/k8s/tep/policy-mode1.yaml`, or change a single field in place, e.g. `kubectl patch operatingpolicy tep-mode1 --type merge -p '{"spec":{"maxCost":150}}'`. The operator re-evaluates immediately and the violation counter starts counting from the new rules. To try another mode, create a second `OperatingPolicy` with a different name and point the Plant to it (`policyRef` in [plant.yaml](../../../tep-lab/local/k8s/tep/plant.yaml)); the counter restarts when the policy changes.
+Edit the file and re-apply it: `kubectl apply -f tep-lab/local/k8s/tep/policy-mode1.yaml`, or change a single field in place, e.g. `kubectl patch operatingpolicy tep-mode1 --type merge -p '{"spec":{"maxCost":150}}'`. The supervisor re-evaluates immediately and the violation counter starts counting from the new rules. To try another mode, create a second `OperatingPolicy` with a different name and point the Plant to it (`policyRef` in [plant.yaml](../../../tep-lab/local/k8s/tep/plant.yaml)); the counter restarts when the policy changes.

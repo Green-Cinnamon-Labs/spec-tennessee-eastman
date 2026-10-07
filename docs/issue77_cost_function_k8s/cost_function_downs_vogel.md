@@ -6,9 +6,9 @@
 
 ---
 
-This file is where the TEP's operating cost J lives. The operator in Kubernetes is generic and knows nothing about the TEP, so this YAML is the only place where Downs & Vogel's prices and formula appear. If you want to change how the plant's cost is measured — a new price, a new term, a different plant — this is the file you edit, not Go code.
+This file is where the TEP's operating cost J lives. The supervisor in Kubernetes (`plant-supervisor`) is generic and knows nothing about the TEP, so this YAML is the only place where Downs & Vogel's prices and formula appear. If you want to change how the plant's cost is measured — a new price, a new term, a different plant — this is the file you edit, not Go code.
 
-It is a Kubernetes object of type `CostFunction` (one of the three CRDs created in #79). It only *declares* the formula. The operator reads it, asks the historian for the signals it mentions, and computes J every evaluation (see [kubernetes_features.md](kubernetes_features.md)).
+It is a Kubernetes object of type `CostFunction` (one of the three CRDs created in #79). It only *declares* the formula. The supervisor reads it, asks the historian for the signals it mentions, and computes J every evaluation (see [kubernetes_features.md](kubernetes_features.md)).
 
 ## What J measures
 
@@ -77,21 +77,21 @@ The signal names are the OPC-UA browse names published by tep-plant, the same ke
 
 Totals at the base case: purge 114.7 $/h, product 30.3 $/h, compressor 18.3 $/h, steam 7.3 $/h. Two things stand out: **the purge is two thirds of the whole cost**, and inside it the largest single loss is E (40.8 $/h). That is why the purge is where a supervisory policy would look first if J goes up.
 
-The base-case column is the same check the operator's unit test does: [TestDownsVogelBaseCaseCost](../../../plant-supervisor/internal/evaluate/evaluate_test.go#L84) feeds the paper's numbers into these 12 terms and expects 170.6 $/h.
+The base-case column is the same check the supervisor's unit test does: [TestDownsVogelBaseCaseCost](../../../plant-supervisor/internal/evaluate/evaluate_test.go#L84) feeds the paper's numbers into these 12 terms and expects 170.6 $/h.
 
 ## The other fields
 
-- **`unit: "$/h"`** ([line 19](../../../tep-lab/local/k8s/tep/cost-function-downs-vogel.yaml#L19)) — just a label, copied into `Plant.status` and shown by `kubectl get plants` and the IHM. The operator doesn't convert anything; it is there so whoever reads J knows what the number means.
+- **`unit: "$/h"`** ([line 19](../../../tep-lab/local/k8s/tep/cost-function-downs-vogel.yaml#L19)) — just a label, copied into `Plant.status` and shown by `kubectl get plants` and the IHM. The supervisor doesn't convert anything; it is there so whoever reads J knows what the number means.
 - **`reference: 170.6`** ([line 20](../../../tep-lab/local/k8s/tep/cost-function-downs-vogel.yaml#L20)) — J at nominal operation according to the paper. It is not a limit and doesn't affect the verdict; it is shown next to the current J so you can see at a glance how far the plant is from the paper's base case. The limit lives in the policy (`maxCost`), see [operating_policy_mode1.md](operating_policy_mode1.md).
 - **`source`** ([line 21](../../../tep-lab/local/k8s/tep/cost-function-downs-vogel.yaml#L21)) — free text citing where the formula comes from. It exists because a cost function is a design choice, and anyone reading the cluster should be able to trace it back to the paper.
 
 ## Things to keep in mind
 
 - **A typo in the paper.** In Table 9's purge breakdown, the line printed as "D 0.04844 30.44" is actually component G (D already appears above it, and 30.44 is G's price). The file uses the correct G price.
-- **Average of a product vs product of averages.** The operator computes `coefficient × mean(flow) × mean(fraction)`, not `mean(flow × fraction)`. They are the same when the signals are steady over the window, which is the regime an economic cost describes; during a strong transient (a disturbance) they can differ a little. If that ever matters, the historian can be taught to average the product directly.
-- **The simulated plant vs the paper.** At nominal operation the operator measures J ≈ 166 $/h, about 2.5 % below the paper's 170.6. The formula is verified against the paper's numbers, so the gap comes from the simulated plant's operating point (for example, its purge flow is ≈ 0.328 kscmh instead of 0.337). That is a model-validation finding, related to #19.
+- **Average of a product vs product of averages.** The supervisor computes `coefficient × mean(flow) × mean(fraction)`, not `mean(flow × fraction)`. They are the same when the signals are steady over the window, which is the regime an economic cost describes; during a strong transient (a disturbance) they can differ a little. If that ever matters, the historian can be taught to average the product directly.
+- **The simulated plant vs the paper.** At nominal operation the supervisor measures J ≈ 166 $/h, about 2.5 % below the paper's 170.6. The formula is verified against the paper's numbers, so the gap comes from the simulated plant's operating point (for example, its purge flow is ≈ 0.328 kscmh instead of 0.337). That is a model-validation finding, related to #19.
 - **Analyzers.** In the original TEP, compositions come from sampled analyzers (every 0.1 h or 0.25 h, with dead time). How tep-plant models those sensors affects how noisy and how delayed the composition terms of J are.
 
 ## How to change it
 
-Edit the file and re-apply it: `kubectl apply -f tep-lab/local/k8s/tep/cost-function-downs-vogel.yaml`. The operator re-evaluates every Plant using this cost function immediately, without restarting anything. For example, to study a scenario where steam is twice as expensive, change the `steam` coefficient to `0.0636` and watch J in `kubectl get plants` or in the IHM panel. Kubernetes validates the file on apply: a cost function with no terms, or a term with no signal, is rejected.
+Edit the file and re-apply it: `kubectl apply -f tep-lab/local/k8s/tep/cost-function-downs-vogel.yaml`. The supervisor re-evaluates every Plant using this cost function immediately, without restarting anything. For example, to study a scenario where steam is twice as expensive, change the `steam` coefficient to `0.0636` and watch J in `kubectl get plants` or in the IHM panel. Kubernetes validates the file on apply: a cost function with no terms, or a term with no signal, is rejected.
