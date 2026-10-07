@@ -2,11 +2,11 @@
 
 **Epic:** https://github.com/Green-Cinnamon-Labs/spec-tennessee-eastman/issues/77
 **Sub-issues:** #78 (tep-historian), #79 (tep-operator), #80 (tep-supervisor), #81 (tep-ihm), #82 (experiment)
-**Date:** 2026-10-07
+**Date:** 2026-10-07 (updated after merging #78–#81)
 
 ---
 
-Everything built on the Kubernetes side for the epic, with a link to where each piece lives. Links are relative to this file and open in VS Code when the sibling repos (`tep-operator`, `tep-supervisor`, `tep-ihm`, `tep-historian`) are checked out next to `spec-tennessee-eastman`. The reasoning behind the design is in [tep-plant/docs/18-sobre-k8s-e-funcao-custo.md](../../../tep-plant/docs/18-sobre-k8s-e-funcao-custo.md).
+Everything built on the Kubernetes side for the epic, with a link to where each piece lives. Links are relative to this file and open in VS Code when the sibling repos (`tep-operator`, `tep-supervisor`, `tep-ihm`, `tep-historian`) are checked out on `main` next to `spec-tennessee-eastman` (everything below is merged). On GitHub, links into another repo don't resolve. The reasoning behind the design is in [tep-plant/docs/18-sobre-k8s-e-funcao-custo.md](../../../tep-plant/docs/18-sobre-k8s-e-funcao-custo.md).
 
 ```
 tep-plant ──OPC-UA──▶ tep-historian ◀──HTTP── tep-operator (Pod in Kind) ──▶ Plant.status ──▶ kubectl / tep-ihm
@@ -14,15 +14,19 @@ tep-plant ──OPC-UA──▶ tep-historian ◀──HTTP── tep-operator (
 
 ## Status
 
-| Issue | What | Where | State |
-|---|---|---|---|
-| #78 | Historian | `tep-historian` `main` | Done |
-| #79 | Operator: CRDs and J evaluation | PR tep-operator#1 | Done, awaiting merge |
-| #80 | TEP manifests and Kind infra | PR tep-supervisor#25 | Done, awaiting merge |
-| #81 | IHM verdict panel | PR tep-ihm#2 | Done, awaiting merge |
-| #82 | Experiment under disturbance | — | Not started |
+| Issue | What                            | Merged                     | State  |
+| ----- | ------------------------------- | -------------------------- | ------ |
+| #78   | Historian                       | `tep-historian` main, PR #1 | Closed |
+| #79   | Operator: CRDs and J evaluation | tep-operator#1             | Closed |
+| #80   | TEP manifests and Kind infra    | tep-supervisor#25          | Closed |
+| #81   | IHM verdict panel               | tep-ihm#2                  | Closed |
+| #82   | Experiment under disturbance    | —                          | Open, not started |
 
-#64 (operator gRPC → OPC-UA) is absorbed by #79: the operator no longer talks to the plant at all.
+The epic #77 stays open until #82 is done. #64 (operator gRPC → OPC-UA) was closed as absorbed by #79: the operator no longer talks to the plant at all. The design note [tep-plant/docs/18](../../../tep-plant/docs/18-sobre-k8s-e-funcao-custo.md) was merged with tep-plant#2.
+
+### What's next — #82
+
+The experiment that produces thesis evidence: switch on a disturbance (e.g. IDV6, A feed loss) and watch J rise and `PolicyCompliant` flip. Open point: IDV6 takes hours of simulated time to reach the plant's limits, and the plant runs at about 2× real time, so the run length and/or simulation speed need deciding first. Also worth recording: J at nominal operation comes out around 166 $/h against the paper's 170.6 $/h (−2.5 %), a model-validation finding related to #19.
 
 ## New object types (CRDs) — group `supervision.greenlabs.io/v1alpha1`
 
