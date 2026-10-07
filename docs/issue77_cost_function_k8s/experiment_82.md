@@ -14,6 +14,17 @@ O que se mede é a *observação*, não o distúrbio em si (caracterizar cada ID
 
 O principal obstáculo é o tempo. O IDV6 é um distúrbio lento e severo: no TEP original ele leva horas de tempo *simulado* para levar a planta aos seus limites, e a planta simulada roda hoje a cerca de 2× o tempo real, então uma rodada completa pode levar horas de relógio — e a janela de 60 s do supervisor também é em tempo de relógio, cobrindo só uns 2 minutos simulados. Antes de rodar, é preciso decidir alguns pontos, listados abaixo. O resultado deve entrar em `experimentos.md` como um novo experimento e na monografia como a principal evidência da camada supervisória.
 
+## Decisões tomadas (2026-10-07)
+
+O experimento vai mostrar **dois níveis de observação**: a função de custo J (#77) e a qualidade das malhas de controle (#85). Para isso:
+
+- **Saúde das malhas é um veredito separado** — uma condition própria, `ControlLoopsHealthy`, que não entra no `PolicyCompliant`. Assim os dois níveis aparecem lado a lado.
+- **Excitação da planta: só ruído nos sensores** (#66), com os desvios-padrão reais de `tep-plant/docs/06-ruidos.md`. Distúrbios aleatórios (IDV8–12) ficam fora deste experimento.
+- **Índice: só o Predictability Index de Bradu**; o de Harris fica para depois.
+- **Velocidade da simulação** não exige trabalho novo: a planta já aceita mudar a velocidade em tempo de execução (os botões 1×/10×/Max da IHM).
+
+O trabalho é feito em blocos, um de cada vez, acompanhado na #85.
+
 ## Decisões antes de rodar
 
 - **Velocidade da simulação** — rodar a planta mais rápido que 2× o tempo real (tornar o `tick_interval` configurável é a #69), ou aceitar uma rodada longa.
