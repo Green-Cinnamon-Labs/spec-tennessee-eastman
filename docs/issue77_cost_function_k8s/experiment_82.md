@@ -14,6 +14,15 @@ O que se mede é a *observação*, não o distúrbio em si (caracterizar cada ID
 
 O principal obstáculo é o tempo. O IDV6 é um distúrbio lento e severo: no TEP original ele leva horas de tempo *simulado* para levar a planta aos seus limites, e a planta simulada roda hoje a cerca de 2× o tempo real, então uma rodada completa pode levar horas de relógio — e a janela de 60 s do supervisor também é em tempo de relógio, cobrindo só uns 2 minutos simulados. Antes de rodar, é preciso decidir alguns pontos, listados abaixo. O resultado deve entrar em `experimentos.md` como um novo experimento e na monografia como a principal evidência da camada supervisória.
 
+## Resultado com seguimento de setpoint (2026-10-08) — Experimento 26
+
+Mesma rodada, agora com `maxOffset` por malha (pressão 20 kPa, níveis 1.0 %). IDV6 ligado em `clock.t_h` 2.02 e desligado em 3.22. Linha do tempo: `tep-lab/data/experiment_82/idv6_maxoffset_2026-10-08.png`.
+
+- **As malhas de nível acusaram primeiro** (`OffsetExceeded` em 2.86, com PI 0.44–0.55 — pelo índice sozinho seriam "saudáveis").
+- **`ControlLoopsHealthy` virou False em 3.03, antes do `NonCompliant` em 3.13.** No Exp 25 ele nunca tinha virado.
+- A pressão do reator também foi pega depois (3.46, offset > 20 kPa com PI 0.99). A planta, de novo, não se recuperou.
+- Com os dois testes por malha, a supervisão mostra a cadeia na ordem física: malhas saem do alvo → produto cai → custo fura o orçamento.
+
 ## Resultado (2026-10-08) — Experimento 25
 
 Rodada com IDV6, regras fixas (política calibrada), velocidade 5. Linha do tempo: `tep-lab/data/experiment_82/idv6_2026-10-08.png`; registro completo como **Experimento 25** em `experimentos.md`.

@@ -8,9 +8,9 @@ O experimento mais recente aparece primeiro.
 
 
 
-## Experimento 26 — Critério de seguimento de setpoint no segundo nível de observação
+## Experimento 26 — Critério de seguimento de setpoint: o nível das malhas passa a avisar antes do econômico
 
-**Data:** 2026-10-08 — **Implementado, falta rodar** — spec #87 (e #85)
+**Data:** 2026-10-08 — **Concluído** — spec #87 (e #85)
 
 ### Observação
 
@@ -32,11 +32,29 @@ Somando ao PI um critério de **seguimento de setpoint** — offset máximo por 
 
 ### Resultado
 
-—
+Mesma rodada do Experimento 25 (IDV6, política Modo 1 calibrada, velocidade 5), agora com `maxOffset` (pressão 20 kPa, níveis 1.0 %). Arquivos: `tep-lab/data/experiment_82/idv6_maxoffset_2026-10-08.csv` e `.png`.
+
+| `clock.t_h` | T₀ + | Evento |
+|---|---|---|
+| 1.22 | — | Início da gravação; `Compliant`, `LOOPS True` (3 de 3 malhas julgadas desde o início, porque o seguimento vale mesmo abaixo do portão) |
+| **2.02** | 0 | **IDV6 ligado** |
+| 2.12 | +0.10 | Pressão do reator: uma avaliação `BelowThreshold` com PI = 0 (o degrau da válvula de purga dentro da janela) — segurada pela persistência, o mesmo soluço do Exp 25 |
+| 2.86 | +0.84 | **Níveis do separador e do stripper: `OffsetExceeded`** (offset 1.14 e 1.12 % > 1.0), com PI 0.44 e 0.55 — pelo índice sozinho seriam "saudáveis" |
+| 2.96 | +0.94 | `TargetsMet` → False (vazão de produto abaixo de 21.80) |
+| **3.03** | **+1.00** | **`ControlLoopsHealthy` → False** (3ª avaliação ruim seguida) |
+| **3.13** | **+1.11** | **`PolicyCompliant` → False, `NonCompliant`** (J 171.0 > 170.6) |
+| 3.22 | +1.20 | **IDV6 desligado** |
+| 3.46 | +1.44 | Pressão do reator: `OffsetExceeded` (offset passa de 20 kPa; PI 0.99) |
+| 4.03 | — | Fim: ainda `NonCompliant` e `LOOPS False`; J 195 $/h, offset da pressão −68.7 kPa, níveis 2.8–3.8 % |
+
+O nível econômico se comportou como no Exp 25 (`NonCompliant` 1.11 h depois do distúrbio, contra 1.15 h lá) e a planta, de novo, não se recuperou depois de desligar o IDV6.
 
 ### Conclusão
 
-—
+1. **A hipótese se confirmou.** Com o critério de seguimento, o segundo nível de observação detectou a degradação e virou **antes** do veredito econômico: `ControlLoopsHealthy` False em T₀ + 1.00 h, `NonCompliant` em T₀ + 1.11 h. No Exp 25, sem o critério, ele nunca virou.
+2. **Quem detectou foi o seguimento, não o PI.** As três malhas foram declaradas ruins por `OffsetExceeded` com PI entre 0.44 e 0.99. O índice de Bradu continua útil para o que foi feito — achar malhas mal sintonizadas que seguem o alvo —, mas não para detectar uma malha que perdeu o setpoint. Os dois testes se complementam, como no CERN, onde o índice roda ao lado dos alarmes de desvio.
+3. **Os dois níveis contam histórias diferentes e coerentes.** As malhas de nível saem do alvo primeiro (a camada regulatória está perdendo a batalha), a vazão de produto cai logo depois (efeito no processo) e o custo fura o orçamento em seguida (efeito econômico). A supervisão no Kubernetes passou a mostrar essa cadeia na ordem física em que ela acontece.
+4. **Para a planta física (uso do CPS):** a supervisão de uma planta assim precisa dos dois testes por malha — previsibilidade e seguimento — e a camada regulatória continua precisando de ação integral e de malha de nível do reator, porque a planta não volta sozinha (#89).
 
 ## Experimento 25 — IDV(6) observado pelo Kubernetes: veredito econômico vira, índice de malha não percebe
 
