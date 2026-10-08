@@ -69,10 +69,10 @@ You never write the `status`; the supervisor fills it on every evaluation. This 
 | `targets` | For each target: the observed average and whether it was met | Metas e restrições (meta) |
 | `constraints` | For each limit: the observed average and whether it held | Metas e restrições (restrição) |
 | `consecutiveViolations` | Failing evaluations in a row so far | Violações |
-| `loops` | Only if the policy declares control loops: for each loop, its Predictability Index, offset (mean error), valve standard deviation, and whether it was judged and is healthy ([LoopStatus, plant_types.go:110](../../../plant-supervisor/api/v1alpha1/plant_types.go#L110)) | — (IHM table in block 5 of #85) |
-| `consecutiveLoopViolations` | Evaluations in a row with at least one unhealthy loop | — (block 5) |
+| `loops` | Only if the policy declares control loops: for each loop, its Predictability Index, offset (mean error), valve standard deviation, and whether it was judged and is healthy ([LoopStatus, plant_types.go:110](../../../plant-supervisor/api/v1alpha1/plant_types.go#L110)) | Malhas de controle (PI, offset, σ válvula, estado) |
+| `consecutiveLoopViolations` | Evaluations in a row with at least one unhealthy loop | — (shown in the Malhas message) |
 | `lastEvaluationTime` | When the last evaluation ran | Avaliação |
-| `conditions` | `DataAvailable`, `CostWithinBudget`, `TargetsMet`, `ConstraintsSatisfied`, `PolicyCompliant`, and — when the policy has loops — `ControlLoopsHealthy`, each with a reason and message | Motivo |
+| `conditions` | `DataAvailable`, `CostWithinBudget`, `TargetsMet`, `ConstraintsSatisfied`, `PolicyCompliant`, and — when the policy has loops — `ControlLoopsHealthy`, each with a reason and message | Motivo (economic) and Malhas (`ControlLoopsHealthy`) |
 
 The three phases mean:
 

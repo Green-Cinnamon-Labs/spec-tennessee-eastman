@@ -39,7 +39,7 @@ Read the diagram as a chain of translations. The plant only produces raw signals
 | #80   | TEP manifests and Kind infra      | tep-lab#25                  | Closed            |
 | #81   | IHM verdict panel                 | tep-ihm#2                   | Closed            |
 | #82   | Experiment under disturbance      | —                           | Open, not started |
-| #85   | Control-loop quality (2nd level)  | blocks 1–4 merged (below)   | Open, blocks 5–7  |
+| #85   | Control-loop quality (2nd level)  | blocks 1–5 merged (below)   | Open, blocks 6–7  |
 | #66   | Sensor noise                      | monjolo#3, tep-plant#4      | Closed            |
 | #86   | Analyzers, pressure loop          | —                           | Open              |
 | #87   | Loop-quality methods vs P loops   | tep-historian#5 (part)      | Open, discussion  |
@@ -50,7 +50,7 @@ The epic #77 stays open until #82 is done. #64 (`tep-operator` gRPC → OPC-UA) 
 
 This is the experiment that produces evidence for the thesis: switch on a disturbance (e.g. IDV6, loss of the A feed) and watch J rise and `PolicyCompliant` flip to `False`. The open point is time: IDV6 takes hours of *simulated* time to push the plant to its limits, and the plant runs at about 2× real time, so the run length and/or simulation speed must be decided first.
 
-Since #85, the experiment shows two levels side by side: J and `PolicyCompliant` (economic), and `ControlLoopsHealthy` (control-loop quality). The preparatory work is split in seven blocks tracked in #85: 0 spec, 1 sensor noise, 2 historian, 3 supervisor, 4 manifests — **done** — and 5 IHM, 6 calibration, 7 the run itself.
+Since #85, the experiment shows two levels side by side: J and `PolicyCompliant` (economic), and `ControlLoopsHealthy` (control-loop quality). The preparatory work is split in seven blocks tracked in #85: 0 spec, 1 sensor noise, 2 historian, 3 supervisor, 4 manifests, 5 IHM — **done** — and 6 calibration, 7 the run itself.
 
 Also worth recording: at nominal operation J comes out around 166 $/h, against 170.6 $/h in the paper (−2.5 %). That gap is a finding about how close the simulated plant is to the original, and it relates to #19 (validation against reference data).
 
@@ -111,7 +111,7 @@ Because the supervisor is generic, all of the TEP lives in these three YAML file
 ## Around Kubernetes
 
 - **Historian** — a small Python service that reads every signal from the plant over OPC-UA, keeps the last hour in memory, and answers "average / std / min / max of these signals over the last N seconds". It is the translator between the plant's world (protocols, raw values) and Kubernetes' world (verdicts), and it knows nothing about TEP either. Since #85 it also computes each control loop's **Predictability Index** (`POST /loop-performance`): it takes the raw series of the loop's measured variable and valve, fits an autoregressive model to the error's fluctuation around its mean, and returns the index, the offset and the valve's standard deviation — the heavy statistics stay in the historian, the judgment in the supervisor. [api.py:86 (`/aggregate`)](../../../tep-historian/src/tep_historian/api.py#L86), [api.py:96 (`/loop-performance`)](../../../tep-historian/src/tep_historian/api.py#L96), [loop_performance.py](../../../tep-historian/src/tep_historian/loop_performance.py), [buffer.py:43](../../../tep-historian/src/tep_historian/buffer.py#L43), [collector.py:60](../../../tep-historian/src/tep_historian/collector.py#L60).
-- **IHM reads the verdict from the Kubernetes API** — the dashboard's ⬡ K8S SUPERVISOR panel watches the `Plant` object directly in Kubernetes, not the supervisor. This is on purpose: Kubernetes is the single source of truth for the verdict, and the supervisor could be restarted or replaced without the dashboard noticing. [server.py:335](../../../tep-ihm/src/server.py#L335); panel: [app.js:180](../../../tep-ihm/static/dashboard/app.js#L180).
+- **IHM reads the verdict from the Kubernetes API** — the dashboard's ⬡ K8S SUPERVISOR panel watches the `Plant` object directly in Kubernetes, not the supervisor. This is on purpose: Kubernetes is the single source of truth for the verdict, and the supervisor could be restarted or replaced without the dashboard noticing. Since #85 the panel also has a "Malhas" line with the `ControlLoopsHealthy` verdict and a "Malhas de controle" table (PI, offset, valve σ, ok / degradada / não julgada). [server.py:335](../../../tep-ihm/src/server.py#L335); panel: [app.js:180](../../../tep-ihm/static/dashboard/app.js#L180).
 
 - **Sensor noise in the plant (#66)** — the loop index is statistical and needs variability; with ideal sensors the errors were almost constant and the index meaningless. Every XMEAS now carries the Gaussian noise of Downs & Vogel's table, declared in the sensor attribute (`#[monjolo::sensor(key = "...", noise = σ)]`), reproducible from run to run. [tep-plant/src/sensors/mod.rs](../../../tep-plant/src/sensors/mod.rs).
 
