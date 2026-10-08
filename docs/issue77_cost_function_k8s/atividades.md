@@ -93,13 +93,13 @@ Divisão: **você** sobe e opera a planta e toma as decisões; **Claude** prepar
 
 As janelas do historian são em **tempo de relógio**, mas a planta roda mais rápido que o tempo real. Na velocidade atual (~2×), a janela de 300 s das malhas cobre ~10 min simulados; a 10×, cobriria ~50 min. A constante de tempo `T` das malhas (30 s) também é de relógio, então muda de significado com a velocidade.
 
-- [ ] Decidir a velocidade (botões 1× / 2× / 5× / 10× / Max da IHM) — **a mesma** que será usada no experimento #82.
+- [ ] Decidir a velocidade — **a mesma** que será usada no experimento #82. Sugestão: **5** (≈ 10× o tempo real). A velocidade só muda a pausa entre ticks, não a física: o passo simulado é sempre 1 s, então os resultados são os mesmos em qualquer velocidade.
 - [ ] Decidir se `loopWindowSeconds`, `timeConstantSeconds` e `windowSeconds` mudam para essa velocidade.
 - [ ] Registrar a decisão e o porquê (abaixo, em "Decisões").
 
 ### 6.4 Rodada de calibração (você roda, observamos juntos)
 
-- [ ] Ajustar a velocidade escolhida na IHM.
+- [ ] Ajustar a velocidade no **UaExpert**: chamar o método `control.set_speed` com o argumento escolhido (Double; `1` = 2× o tempo real, `N` = 2N×, `0` = o mais rápido possível). Os botões de velocidade da IHM não funcionam (o backend ignora). Conferir: a 5, `clock.t_h` avança ~0.0028 h por segundo de relógio.
 - [ ] Deixar a planta estabilizar alguns minutos depois de subir.
 - [ ] Iniciar a gravação, num terminal na pasta `C:\Projetos	ep`:
   ```bash
