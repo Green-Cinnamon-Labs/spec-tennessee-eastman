@@ -117,7 +117,7 @@ As janelas do historian são em **tempo de relógio**, mas a planta roda mais r�
 - [x] **`minOutputStd`**: decidir entre o σ da válvula de purga (~0.009 %) e o dos níveis (~0.3 %). Decidir também se a malha de pressão continua fora do julgamento (#86) ou sai da política.
 - [x] **`maxCost`**: rever a partir da média e da dispersão de J (hoje ~166–169 $/h contra orçamento de 179).
 - [x] Editar `tep-lab/local/k8s/tep/policy-mode1.yaml` com os valores e aplicar: `kubectl apply -f tep-lab/local/k8s/tep/policy-mode1.yaml`.
-- [ ] Conferir no painel, por alguns minutos, que a operação nominal fica estável em `Compliant` e "Malhas: saudáveis". **Pendente:** a política calibrada foi aplicada com a planta já desligada; conferir ao subir de novo.
+- [x] Conferir no painel, por alguns minutos, que a operação nominal fica estável em `Compliant` e "Malhas: saudáveis". **Conferido no início do bloco 7** (2026-10-08): `Compliant`, `LOOPS True`, "budget 170.60".
 
 ### 6.6 Fechamento (Claude)
 
@@ -149,64 +149,64 @@ Divisão: **você** opera (planta, UaExpert, gravação) e anota os marcos; **Cl
 
 ### 7.0 Subir e conferir (inclui a pendência do bloco 6)
 
-- [ ] F5 no tep-plant, no tep-historian e no tep-ihm (mesmas configurações do bloco 6).
-- [ ] No UaExpert: `control.set_speed(5.0)`. Anotar o `clock.t_h` desse momento.
-- [ ] Esperar ~5 min de relógio (`clock.t_h` ≈ momento do set_speed + 0.85), para a janela das malhas ficar toda na velocidade 5.
-- [ ] Conferir a política calibrada (pendência do bloco 6): `kubectl get plants` mostra `Compliant` e `LOOPS True`, e `kubectl describe plant tep` mostra `CostWithinBudget` com "budget 170.60".
+- [x] F5 no tep-plant, no tep-historian e no tep-ihm (mesmas configurações do bloco 6).
+- [x] No UaExpert: `control.set_speed(5.0)`. Anotar o `clock.t_h` desse momento.
+- [x] Esperar ~5 min de relógio (`clock.t_h` ≈ momento do set_speed + 0.85), para a janela das malhas ficar toda na velocidade 5.
+- [x] Conferir a política calibrada (pendência do bloco 6): `kubectl get plants` mostra `Compliant` e `LOOPS True`, e `kubectl describe plant tep` mostra `CostWithinBudget` com "budget 170.60".
 
 ### 7.1 Gravar e registrar o trecho nominal
 
-- [ ] Iniciar a gravação, num terminal em `C:\Projetos\tep`:
+- [x] Iniciar a gravação, num terminal em `C:\Projetos\tep`:
   ```bash
   python tep-lab/local/scripts/record_run.py --interval 10 --out tep-lab/data/experiment_82/idv6_2026-10-08.csv
   ```
-- [ ] Deixar ~5 min de relógio sem distúrbio (~0.8 h simulada) — é a referência "antes".
+- [x] Deixar ~5 min de relógio sem distúrbio (~0.8 h simulada) — é a referência "antes".
 
 ### 7.2 Ligar o IDV6
 
-- [ ] No UaExpert, escrever **`1`** em `disturbance.idv6`.
-- [ ] **Anotar o `clock.t_h` do momento** (T₀) na tabela abaixo.
-- [ ] Conferir que pegou: `xmeas.stream1.flow_rate` (alimentação de A) cai para ~0.
+- [x] No UaExpert, escrever **`1`** em `disturbance.idv6`.
+- [x] **Anotar o `clock.t_h` do momento** (T₀) na tabela abaixo.
+- [x] Conferir que pegou: `xmeas.stream1.flow_rate` (alimentação de A) cai para ~0.
 
 ### 7.3 Observar (até o veredito virar, ou ~T₀ + 7 h)
 
 No painel ⬡ K8S SUPERVISOR, acompanhar e anotar na tabela:
 
-- [ ] J subindo — quando passa de 170.6 (`CostWithinBudget` vira False).
-- [ ] Qual condition cai **primeiro**: custo, metas (`TargetsMet`) ou limites (`ConstraintsSatisfied`).
-- [ ] Quando `PolicyCompliant` vira False e a fase vira `NonCompliant` (depois de 3 avaliações ruins seguidas).
-- [ ] O que acontece com o PI das malhas de nível e com `ControlLoopsHealthy` — sai da faixa nominal (0.15–0.40)?
-- [ ] Se a pressão do reator passa a ser julgada (a válvula de purga começa a se mexer?).
-- [ ] Se `status.shutdown_detected` vira 1 no UaExpert (a planta continua rodando mesmo assim; o shutdown é só diagnóstico, #70).
-- [ ] Parar de observar quando o veredito tiver virado e ficado estável, ou em `clock.t_h` ≈ T₀ + 7.
+- [x] J subindo — quando passa de 170.6 (`CostWithinBudget` vira False).
+- [x] Qual condition cai **primeiro**: custo, metas (`TargetsMet`) ou limites (`ConstraintsSatisfied`).
+- [x] Quando `PolicyCompliant` vira False e a fase vira `NonCompliant` (depois de 3 avaliações ruins seguidas).
+- [x] O que acontece com o PI das malhas de nível e com `ControlLoopsHealthy` — sai da faixa nominal (0.15–0.40)?
+- [x] Se a pressão do reator passa a ser julgada (a válvula de purga começa a se mexer?).
+- [x] Se `status.shutdown_detected` vira 1 no UaExpert (a planta continua rodando mesmo assim; o shutdown é só diagnóstico, #70).
+- [x] Parar de observar quando o veredito tiver virado e ficado estável, ou em `clock.t_h` ≈ T₀ + 7.
 
 ### 7.4 Desligar o IDV6 e ver a recuperação
 
-- [ ] No UaExpert, escrever **`0`** em `disturbance.idv6`. **Anotar o `clock.t_h`** (T₁).
-- [ ] Deixar ~10 min de relógio (~1.7 h simulada) e observar se o veredito volta a `Compliant` e as malhas a saudáveis.
-- [ ] Parar a gravação com Ctrl+C.
+- [x] No UaExpert, escrever **`0`** em `disturbance.idv6`. **Anotar o `clock.t_h`** (T₁).
+- [x] Deixar ~10 min de relógio (~1.7 h simulada) e observar se o veredito volta a `Compliant` e as malhas a saudáveis.
+- [x] Parar a gravação com Ctrl+C.
 
 ### 7.5 Ler o resultado (Claude, com você)
 
-- [ ] Gráfico no tempo, com os marcos (Claude roda; de dentro de `tep-lab/analysis`):
+- [x] Gráfico no tempo, com os marcos (Claude roda; de dentro de `tep-lab/analysis`):
   ```bash
   poetry run run-timeline ../data/experiment_82/idv6_2026-10-08.csv --mark T₀:"IDV6 ligado" --mark T₁:"IDV6 desligado"
   ```
-- [ ] Resumo: `python tep-lab/local/scripts/summarize_run.py tep-lab/data/experiment_82/idv6_2026-10-08.csv`.
-- [ ] Registrar como novo experimento em `experimentos.md`, atualizar `experiment_82.md` e a #82/#85; commitar CSV e PNG em `tep-lab/data/experiment_82/`.
+- [x] Resumo: `python tep-lab/local/scripts/summarize_run.py tep-lab/data/experiment_82/idv6_2026-10-08.csv`.
+- [x] Registrar como novo experimento em `experimentos.md`, atualizar `experiment_82.md` e a #82/#85; commitar CSV e PNG em `tep-lab/data/experiment_82/`.
 
 ### Anotações (preencher durante a rodada)
 
 | Marco | `clock.t_h` | Observação |
 |---|---|---|
-| `control.set_speed(5.0)` | | |
-| Início da gravação | | |
-| T₀ — IDV6 ligado | | |
-| J passa de 170.6 (`CostWithinBudget` False) | | |
-| Primeira condition a cair | | qual: |
-| `PolicyCompliant` False / `NonCompliant` | | |
-| `ControlLoopsHealthy` muda? | | |
-| `shutdown_detected` = 1? | | |
-| T₁ — IDV6 desligado | | |
-| Volta a `Compliant` | | |
-| Fim da gravação | | |
+| `control.set_speed(5.0)` | não anotado | Velocidade confirmada antes da gravação: ~9.5 s simulados por segundo |
+| Início da gravação | 1.39 | `Compliant`, `LOOPS True`, budget 170.60 (pendência do bloco 6 conferida) |
+| T₀ — IDV6 ligado | **2.31** | Alimentação de A cai a ~0 |
+| J passa de 170.6 (`CostWithinBudget` False) | 3.46 | J 171.6 |
+| Primeira condition a cair | 3.29 | qual: **`TargetsMet`** — vazão de produto 21.48 < 21.80 |
+| `PolicyCompliant` False / `NonCompliant` | **3.46** | 3ª avaliação ruim seguida (persistência 3) |
+| `ControlLoopsHealthy` muda? | — | **Não**: True o tempo todo; PI da pressão vai a ≈ 1.0 com offset de −131 kPa (#87) |
+| `shutdown_detected` = 1? | — | Não (pressão chegou a ~2840, limite 2895; nível do reator ~90 %) |
+| T₁ — IDV6 desligado | **3.84** | Alimentação de A volta a 0.25 kscmh |
+| Volta a `Compliant` | — | **Não voltou**: pressão, nível e J continuaram subindo (J 218 no fim) |
+| Fim da gravação | 5.00 | 44 avaliações gravadas |

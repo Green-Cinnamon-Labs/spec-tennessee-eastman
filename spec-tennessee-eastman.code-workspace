@@ -5,12 +5,8 @@
 			"path": "."
 		},
 		{
-			"name": "monjolo",
-			"path": "../monjolo"
-		},
-		{
-			"name": "plant-supervisor",
-			"path": "../plant-supervisor"
+			"name": "tep-lab",
+			"path": "../tep-lab"
 		},
 		{
 			"name": "tep-plant",
@@ -25,8 +21,12 @@
 			"path": "../tep-historian"
 		},
 		{
-			"name": "tep-lab",
-			"path": "../tep-lab"
+			"name": "monjolo",
+			"path": "../monjolo"
+		},
+		{
+			"name": "plant-supervisor",
+			"path": "../plant-supervisor"
 		}
 	],
 	"settings": {

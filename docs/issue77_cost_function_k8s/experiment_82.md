@@ -2,7 +2,7 @@
 
 **Issue:** https://github.com/Green-Cinnamon-Labs/spec-tennessee-eastman/issues/82
 **Epic:** #77
-**Data:** 2026-10-07 (não iniciado)
+**Data:** 2026-10-08 (rodado — Experimento 25 em `experimentos.md`)
 
 ---
 
@@ -13,6 +13,15 @@ O procedimento é simples de enunciar. Com a planta rodando no caso base do Modo
 O que se mede é a *observação*, não o distúrbio em si (caracterizar cada IDV é a #47). As perguntas são: como J evolui depois do distúrbio e quais dos seus 12 termos se mexem; qual condição falha primeiro — custo (`CostWithinBudget`), produto (`TargetsMet`) ou envelope de operação (`ConstraintsSatisfied`); quanto tempo passa entre ligar o distúrbio e o veredito virar, separando o tempo de resposta da própria planta do atraso que o supervisor acrescenta (janela de média de 60 s, intervalo de avaliação de 30 s, persistência de 3); e se o veredito volta a `Compliant` quando o distúrbio é desligado. Um segundo distúrbio com assinatura diferente (por exemplo IDV1, um degrau na razão A/C da alimentação) mostraria se o veredito distingue um problema econômico de um problema de limite.
 
 O principal obstáculo é o tempo. O IDV6 é um distúrbio lento e severo: no TEP original ele leva horas de tempo *simulado* para levar a planta aos seus limites, e a planta simulada roda hoje a cerca de 2× o tempo real, então uma rodada completa pode levar horas de relógio — e a janela de 60 s do supervisor também é em tempo de relógio, cobrindo só uns 2 minutos simulados. Antes de rodar, é preciso decidir alguns pontos, listados abaixo. O resultado deve entrar em `experimentos.md` como um novo experimento e na monografia como a principal evidência da camada supervisória.
+
+## Resultado (2026-10-08) — Experimento 25
+
+Rodada com IDV6, regras fixas (política calibrada), velocidade 5. Linha do tempo: `tep-lab/data/experiment_82/idv6_2026-10-08.png`; registro completo como **Experimento 25** em `experimentos.md`.
+
+- **IDV6 ligado em `clock.t_h` 2.31, desligado em 3.84.**
+- **Nível econômico:** `TargetsMet` caiu primeiro (3.29, vazão de produto 21.48 < 21.80), depois `CostWithinBudget` (3.46, J 171.6 > 170.6) e, na 3ª avaliação ruim seguida, **`NonCompliant` em 3.46** — 1.15 h de processo depois do distúrbio. O veredito ficou `NonCompliant` até o fim (J chegou a 218 $/h).
+- **A planta não se recuperou** depois de desligar o IDV6: sem malha de nível do reator e com a pressão só proporcional, pressão e nível continuaram subindo.
+- **Nível das malhas:** `ControlLoopsHealthy` ficou True o tempo todo. Sob o distúrbio o erro vira deriva lenta, previsível, e o PI sobe (pressão ≈ 1.0 com offset de −131 kPa). O índice de Bradu mede previsibilidade, não seguimento de setpoint — o segundo nível precisa de um critério de offset/saturação (#87).
 
 ## Decisões tomadas (2026-10-07)
 

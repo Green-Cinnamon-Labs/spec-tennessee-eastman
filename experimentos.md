@@ -8,6 +8,63 @@ O experimento mais recente aparece primeiro.
 
 
 
+## Experimento 25 — IDV(6) observado pelo Kubernetes: veredito econômico vira, índice de malha não percebe
+
+**Data:** 2026-10-08 — **Concluído** — spec #82 (epic #77) e bloco 7 da #85
+
+**Arquivos:** `tep-lab/data/experiment_82/idv6_2026-10-08.csv` (gravação) e `idv6_2026-10-08.png` (linha do tempo); calibração nominal em `calibracao_2026-10-08.csv`.
+
+### Observação
+
+Até aqui o veredito do supervisor (`plant-supervisor` no Kind) só tinha virado mudando a regra (`maxCost` baixado à mão, 2026-10-02). Faltava a evidência central da tese: a **própria planta** se degradando com as regras fixas, e o Kubernetes percebendo. Desde a #85 o supervisor tem dois níveis de observação — o econômico (J, metas, limites → `PolicyCompliant`) e a qualidade das malhas (Predictability Index de Bradu et al. → `ControlLoopsHealthy`) —, ambos com limiares calibrados em operação nominal no mesmo dia (bloco 6: J = 166.83 ± 0.18 $/h; PI dos níveis 0.147–0.40).
+
+### Hipótese
+
+IDV(6) corta a alimentação de A (corrente 1). Sem A as reações que produzem G e H desaceleram, C/D/E sobram e se acumulam no reciclo de gás, a pressão do reator sobe e a purga abre — levando mais reagentes caros na purga. Esperado: (1) a vazão de produto cair e J subir até furar o orçamento; (2) o supervisor declarar `NonCompliant` depois de 3 avaliações ruins seguidas; (3) as malhas, sob esforço, mostrarem degradação no índice.
+
+### Intervenção
+
+Planta com ruído nos sensores (#66), velocidade 5 (≈ 10× o tempo real, `control.set_speed` via UaExpert), historian a 100 ms, política Modo 1 calibrada (`maxCost` 170.6, `minPredictability` 0.12, `minOutputStd` 0.05, persistência 3). Gravação com `record_run.py` a cada 10 s de relógio.
+
+| `clock.t_h` | Ação |
+|---|---|
+| 1.39 | Início da gravação (trecho nominal) |
+| **2.31** | **IDV6 ligado** (`disturbance.idv6 = 1`); alimentação de A cai a ~0 |
+| **3.84** | **IDV6 desligado** (`disturbance.idv6 = 0`); alimentação de A volta a 0.25 kscmh |
+| 5.00 | Fim da gravação |
+
+### Resultado
+
+**Nível econômico — o veredito virou, na ordem esperada:**
+
+| `clock.t_h` | Evento | J ($/h) |
+|---|---|---|
+| 2.31 → 2.6 | J **cai** um pouco (165.0): sai menos A na purga | 165–166 |
+| 3.29 | **`TargetsMet` → False**: vazão de produto 21.48 m³/h, abaixo do piso de 21.80 (22.949 − 5 %) | 168.9 |
+| 3.46 | **`CostWithinBudget` → False** e, na 3ª avaliação ruim seguida, **`PolicyCompliant` → False, fase `NonCompliant`** | 171.6 |
+| 3.84 | IDV6 desligado | 182.3 |
+| 5.00 | Ainda `NonCompliant`; J continua subindo | 218.2 |
+
+Tempo do distúrbio ao veredito: **1.15 h de processo** (≈ 7 min de relógio). `ConstraintsSatisfied` ficou True o tempo todo, mas a pressão do reator subiu de ~2695 para ~2840 kPa (limite 2895) e o nível do reator de ~72 para ~90 %; `shutdown_detected` não chegou a disparar.
+
+**A planta não se recuperou depois que o IDV6 foi desligado.** Pressão, nível do reator e J continuaram subindo até o fim da gravação (1.2 h de processo depois de T₁). Causas: o nível do reator não tem malha de controle (a 4ª malha foi refutada no Exp 9), a malha de pressão é proporcional com Kp = 0.1 (a purga abriu de 39 % para 53 % e não deu conta), e o C/D/E acumulado no reciclo só sai devagar pela purga — o que encarece J.
+
+**Nível das malhas — o índice não percebeu a degradação:**
+
+| Malha | PI nominal | PI sob distúrbio | σ da válvula | Offset |
+|---|---|---|---|---|
+| Pressão do reator | 0.17–0.38 (não julgada) | **≈ 1.00** a partir de t ≈ 3.0 | 0.013 → 2.5 % | 9 → **−131 kPa** |
+| Nível do separador | 0.15–0.40 | 0.25–0.52 | 0.29 → 0.79 % | 0.07 → 3.5 % |
+| Nível do stripper | 0.15–0.35 | 0.18–0.65 | 0.30 → 1.05 % | −0.03 → 5.1 % |
+
+`ControlLoopsHealthy` ficou **True em 100 % das avaliações**. A malha de pressão passou a ser julgada assim que a válvula de purga começou a se mexer (σ acima do portão de 0.05 %) e teve uma única avaliação abaixo do limiar, no instante do degrau (PI 0.0, t ≈ 2.4), insuficiente para a persistência. Depois o PI dela foi a ≈ 1.0 e ficou, com a pressão 95–131 kPa acima do setpoint.
+
+### Conclusão
+
+1. **A tese se sustenta no nível econômico.** Com as regras fixas, o Kubernetes registrou a degradação da planta, na ordem física esperada (produto primeiro, custo depois), respeitando a persistência, e manteve o veredito enquanto a planta não se recuperou. Toda a evidência está no `Plant.status`, lida pela API do Kubernetes (kubectl, IHM).
+2. **O Predictability Index não serve, sozinho, para dizer se a malha está dando conta.** Ele mede se o erro é *previsível*, não se a malha segura o setpoint. Em operação nominal o erro é ruído (PI baixo); sob distúrbio vira deriva lenta, que o modelo autorregressivo prevê facilmente (PI ≈ 1, "saudável"). E como o PI é calculado sobre a flutuação em torno da média (#87), o offset de −131 kPa nem entra no julgamento. É coerente com o artigo — Bradu procura malhas mal sintonizadas, supondo que a malha segue o setpoint em média —, mas mostra que o segundo nível precisa de um critério de **seguimento de setpoint** (offset máximo por malha e/ou saturação da válvula). Registrado na #87.
+3. **A camada regulatória do tep-plant não rejeita o IDV6.** Sem malha de nível do reator e com a pressão só proporcional, a planta não volta sozinha. Coerente com a literatura (IDV6 é o distúrbio mais severo do TEP); reforça a discussão sobre converter as malhas P em PI (#87) e sobre o interlock (#70).
+
 ## Experimento 24 — `twr` congelado: a fórmula quase-estática era estruturalmente instável, não só mal calibrada — INVESTIGAÇÃO FECHADA
 
 **Data:** 2026-09-16 — **Concluído e FECHADO** — root cause dos Exp 18-23 encontrada e corrigida
