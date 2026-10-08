@@ -29,5 +29,10 @@
 			"path": "../tep-lab"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"files.exclude": {
+			"**/*.bkp": true,
+			"**/*.dtmp": true
+		}
+	}
 }
