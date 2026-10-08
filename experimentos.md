@@ -8,6 +8,32 @@ O experimento mais recente aparece primeiro.
 
 
 
+## Experimento 26 — Critério de seguimento de setpoint no segundo nível de observação
+
+**Data:** 2026-10-08 — **Planejado** — spec #87 (e #85)
+
+### Observação
+
+No Experimento 25 o nível econômico do supervisor virou para `NonCompliant` sob IDV6, mas `ControlLoopsHealthy` ficou True em 100 % das avaliações: o Predictability Index de Bradu foi a ≈ 1.0 na malha de pressão enquanto a pressão estava até 131 kPa acima do setpoint. O índice mede se o erro é previsível, não se a malha segura o setpoint — sob distúrbio o erro vira deriva lenta, que é previsível.
+
+### Hipótese
+
+Somando ao PI um critério de **seguimento de setpoint** — offset máximo por malha (|SP − média(PV)| na janela) e/ou detecção de válvula saturada —, a malha de pressão é declarada não saudável sob IDV6, e `ControlLoopsHealthy` vira False antes ou junto com o veredito econômico, mantendo-se True em operação nominal.
+
+### Intervenção (planejada)
+
+1. `plant-supervisor`: `maxOffset` (e, se fizer sentido, um limite de saturação) por malha em `controlLoops`; regra em `EvaluateLoops`: malha não saudável se falhar no PI **ou** no seguimento. O offset já está no `Plant.status`.
+2. Calibrar `maxOffset` com a gravação nominal de 2026-10-08 (`calibracao_2026-10-08.csv`). Atenção: com controle P a pressão tem offset nominal de ~9 kPa — o limiar precisa ficar acima disso.
+3. Repetir a rodada do Experimento 25 (IDV6, mesmas regras, velocidade 5) e comparar.
+
+### Resultado
+
+—
+
+### Conclusão
+
+—
+
 ## Experimento 25 — IDV(6) observado pelo Kubernetes: veredito econômico vira, índice de malha não percebe
 
 **Data:** 2026-10-08 — **Concluído** — spec #82 (epic #77) e bloco 7 da #85
@@ -64,6 +90,15 @@ Tempo do distúrbio ao veredito: **1.15 h de processo** (≈ 7 min de relógio).
 1. **A tese se sustenta no nível econômico.** Com as regras fixas, o Kubernetes registrou a degradação da planta, na ordem física esperada (produto primeiro, custo depois), respeitando a persistência, e manteve o veredito enquanto a planta não se recuperou. Toda a evidência está no `Plant.status`, lida pela API do Kubernetes (kubectl, IHM).
 2. **O Predictability Index não serve, sozinho, para dizer se a malha está dando conta.** Ele mede se o erro é *previsível*, não se a malha segura o setpoint. Em operação nominal o erro é ruído (PI baixo); sob distúrbio vira deriva lenta, que o modelo autorregressivo prevê facilmente (PI ≈ 1, "saudável"). E como o PI é calculado sobre a flutuação em torno da média (#87), o offset de −131 kPa nem entra no julgamento. É coerente com o artigo — Bradu procura malhas mal sintonizadas, supondo que a malha segue o setpoint em média —, mas mostra que o segundo nível precisa de um critério de **seguimento de setpoint** (offset máximo por malha e/ou saturação da válvula). Registrado na #87.
 3. **A camada regulatória do tep-plant não rejeita o IDV6.** Sem malha de nível do reator e com a pressão só proporcional, a planta não volta sozinha. Coerente com a literatura (IDV6 é o distúrbio mais severo do TEP); reforça a discussão sobre converter as malhas P em PI (#87) e sobre o interlock (#70).
+
+### O que isso diz sobre a planta física (uso do CPS)
+
+O objetivo deste laboratório é usar um sistema ciberfísico — a planta simulada, sua instrumentação e a camada de supervisão no Kubernetes — para descobrir o que uma planta física com essa estrutura precisaria. O Experimento 25 aponta três necessidades, em duas camadas:
+
+- **Camada regulatória (planta):** as malhas precisam de **ação integral** (PI) para não aceitar offset permanente sob distúrbio, e o **nível do reator precisa de uma malha** — sem ela a planta não volta sozinha de um IDV6. Rastreado na #89.
+- **Camada de supervisão (Kubernetes):** avaliar uma malha só pela previsibilidade do erro não basta; é preciso também um **critério de seguimento de setpoint** (distância do alvo e saturação da válvula). Rastreado na #87; é o Experimento 26.
+
+As duas são independentes: mesmo com PI, uma malha que não dá conta de um distúrbio (válvula saturada) produz um erro que deriva de forma suave e previsível, e o índice de Bradu continuaria dizendo "saudável". Por isso o critério de seguimento vem primeiro.
 
 ## Experimento 24 — `twr` congelado: a fórmula quase-estática era estruturalmente instável, não só mal calibrada — INVESTIGAÇÃO FECHADA
 
