@@ -1,7 +1,7 @@
 # The TEP plant object — `plant.yaml` explained (Issue #77)
 
 **File:** [tep-lab/local/k8s/tep/plant.yaml](../../../tep-lab/local/k8s/tep/plant.yaml)
-**Type:** [Plant, plant_types.go:149](../../../plant-supervisor/api/v1alpha1/plant_types.go#L149)
+**Type:** [Plant, plant_types.go:189](../../../plant-supervisor/api/v1alpha1/plant_types.go#L189)
 **Date:** 2026-10-07
 
 ---
@@ -47,7 +47,7 @@ This field is the **switch between operating modes**. To run the plant under a d
 
 ### `evaluationIntervalSeconds: 30` — [line 12](../../../tep-lab/local/k8s/tep/plant.yaml#L12)
 
-How often the supervisor re-evaluates the plant. Every 30 s it fetches fresh averages and writes a new verdict. If omitted, the default is 30 s ([plant_controller.go:73](../../../plant-supervisor/internal/controller/plant_controller.go#L73)).
+How often the supervisor re-evaluates the plant. Every 30 s it fetches fresh averages and writes a new verdict. If omitted, the default is 30 s ([plant_controller.go:68](../../../plant-supervisor/internal/controller/plant_controller.go#L68)).
 
 This interval works together with two fields of the policy:
 
@@ -58,7 +58,7 @@ A shorter interval makes the verdict react faster but writes to Kubernetes more 
 
 ## What the supervisor writes back — the `status`
 
-You never write the `status`; the supervisor fills it on every evaluation. This is what `kubectl get plant tep -o yaml` shows, and what the IHM's K8S SUPERVISOR panel displays ([PlantStatus, plant_types.go:107](../../../plant-supervisor/api/v1alpha1/plant_types.go#L107)):
+You never write the `status`; the supervisor fills it on every evaluation. This is what `kubectl get plant tep -o yaml` shows, and what the IHM's K8S SUPERVISOR panel displays ([PlantStatus, plant_types.go:138](../../../plant-supervisor/api/v1alpha1/plant_types.go#L138)):
 
 | Field | What it holds | In the IHM panel |
 |---|---|---|
@@ -69,8 +69,10 @@ You never write the `status`; the supervisor fills it on every evaluation. This 
 | `targets` | For each target: the observed average and whether it was met | Metas e restrições (meta) |
 | `constraints` | For each limit: the observed average and whether it held | Metas e restrições (restrição) |
 | `consecutiveViolations` | Failing evaluations in a row so far | Violações |
+| `loops` | Only if the policy declares control loops: for each loop, its Predictability Index, offset (mean error), valve standard deviation, and whether it was judged and is healthy ([LoopStatus, plant_types.go:110](../../../plant-supervisor/api/v1alpha1/plant_types.go#L110)) | — (IHM table in block 5 of #85) |
+| `consecutiveLoopViolations` | Evaluations in a row with at least one unhealthy loop | — (block 5) |
 | `lastEvaluationTime` | When the last evaluation ran | Avaliação |
-| `conditions` | `DataAvailable`, `CostWithinBudget`, `TargetsMet`, `ConstraintsSatisfied`, `PolicyCompliant`, each with a reason and message | Motivo |
+| `conditions` | `DataAvailable`, `CostWithinBudget`, `TargetsMet`, `ConstraintsSatisfied`, `PolicyCompliant`, and — when the policy has loops — `ControlLoopsHealthy`, each with a reason and message | Motivo |
 
 The three phases mean:
 
@@ -78,16 +80,20 @@ The three phases mean:
 - **`NonCompliant`** — checks failed `persistenceEvaluations` times in a row.
 - **`Pending`** — no verdict is possible: the policy or cost function doesn't exist, the historian is unreachable, the plant is disconnected, or a signal has no samples. The verdict conditions become `Unknown` rather than keeping a stale `True`/`False`, and `DataAvailable` says why.
 
+The phase is the **economic** verdict only. The control-loop verdict lives in its own condition, `ControlLoopsHealthy` ([plant_types.go:64](../../../plant-supervisor/api/v1alpha1/plant_types.go#L64)), and never changes the phase: `True` when every judged loop is above its threshold (or below it fewer than `loopPersistenceEvaluations` times in a row), `False` after that many evaluations in a row with an unhealthy loop, and `Unknown` when no loop could be judged (`NoLoopEvaluated`, e.g. every valve below its variability gate) or the historian failed to compute the indices. The two levels are deliberately kept apart: a plant can be economically compliant with a poorly tuned loop, and the experiment (#82) shows both side by side.
+
 Because the verdict is stored by Kubernetes, anyone can read it without talking to the supervisor, and it survives the supervisor restarting.
 
 ## How to use it
 
 ```bash
 kubectl apply -f tep-lab/local/k8s/tep/plant.yaml   # create or update the Plant
-kubectl get plants                                         # one line: policy, J, unit, phase
+kubectl get plants                                         # one line: policy, J, unit, phase, loops
 kubectl describe plant tep                                 # conditions with reason and message
 kubectl get plant tep -o yaml                              # the whole status, including each term of J
 kubectl edit plant tep                                     # change policyRef, interval or historian
 ```
+
+The `LOOPS` column of `kubectl get plants` shows the status of `ControlLoopsHealthy` (empty when the policy declares no loops).
 
 `setup.sh` applies this file together with the cost function and the policy ([setup.sh:66](../../../tep-lab/local/setup.sh#L66)), so after a fresh setup the Plant already exists. The order of applying the three files doesn't matter: if the Plant arrives before its policy, it stays `Pending` (`PolicyNotFound`) and becomes `Compliant` or `NonCompliant` as soon as the policy appears.

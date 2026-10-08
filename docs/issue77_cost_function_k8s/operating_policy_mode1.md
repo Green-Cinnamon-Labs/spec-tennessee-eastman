@@ -70,6 +70,42 @@ The **operating envelope**: signals that must stay inside `[min, max]`. Either b
 
 These are the **normal** operating limits of Table 6, deliberately not the shutdown limits. The policy's job is to say "the plant has left its normal envelope" before the plant's own interlock has to stop it; the shutdown itself is a separate mechanism in tep-plant (#70).
 
+### `controlLoops` and the loop settings — the second observation level (#85)
+
+> **Status:** the fields exist in the `OperatingPolicy` type (plant-supervisor#3), but `policy-mode1.yaml` does not declare any loop yet. The three loops below are added in block 4 of #85, with **provisional** thresholds that will be calibrated in block 6.
+
+Besides the economic criteria above, a policy can declare the plant's **control loops** whose *quality* must be watched. This is the second observation level: not "is the plant operating cheaply and inside its envelope?", but "are the controllers doing their job well?". The index is the Predictability Index of Bradu et al. (2017): an autoregressive model is fitted to each loop's error `SP − PV` and asked how much of it it can predict a little ahead. A regular, predictable error gives PI near 1; an erratic error, like white noise, gives PI near 0. The historian computes the index; the supervisor judges it.
+
+The result is a **separate verdict** — the condition `ControlLoopsHealthy` — that never changes the plant's `phase` or `PolicyCompliant`. That is deliberate: a plant can be economically fine with a badly tuned loop, or the other way round, and the experiment (#82) wants to show the two levels side by side.
+
+Each loop ([ControlLoop, operatingpolicy_types.go:50](../../../plant-supervisor/api/v1alpha1/operatingpolicy_types.go#L50)) declares:
+
+| Field | What it is | Why |
+|---|---|---|
+| `name` | Loop name in the status | To tell the loops apart in `kubectl` and the IHM |
+| `pv` | Historian key of the measured variable | The error is `setpoint − pv` |
+| `setpoint` | The controller's setpoint | In the TEP it is a constant inside the plant's Rust code, so it has to be declared here |
+| `op` | Historian key of the controller output (the valve position) | Used by the variability gate |
+| `timeConstantSeconds` | Closed-loop settling time `T` | Sets the prediction horizon `b = ceil(T / t_s)` — the article's rule |
+| `minPredictability` | Threshold `PI_L` | Below it, the loop is considered poorly tuned |
+| `minOutputStd` | Variability gate `σ̄_y` | The loop is only judged if its valve actually moves; a saturated, idle or manual loop says nothing about tuning |
+
+And three settings shared by all loops ([lines 127–146](../../../plant-supervisor/api/v1alpha1/operatingpolicy_types.go#L127)):
+
+- **`loopWindowSeconds`** (default 300) — the window `t_W` over which each index is computed. It is longer than the economic `windowSeconds` because the index needs a time series of several loop time constants, not just a mean.
+- **`loopSampleIntervalSeconds`** (default 1) — the sampling `t_s`; the historian resamples the series to it before fitting the model.
+- **`loopPersistenceEvaluations`** (default 3) — Bradu's `N`: how many evaluations in a row with an unhealthy loop before `ControlLoopsHealthy` turns `False`. It has its own counter, separate from the economic one.
+
+The three TEP loops that block 4 will declare are the plant's three proportional controllers, the classic Downs & Vogel ones:
+
+| `name` | `pv` | `op` | `setpoint` |
+|---|---|---|---|
+| `reactor_pressure` | `xmeas.reactor.pressure` | `valve.purge.position` | 2705 kPa |
+| `separator_level` | `xmeas.separator.level` | `valve.separator_underflow.position` | 50 % |
+| `stripper_level` | `xmeas.stripper.level` | `valve.stripper_product.position` | 50 % |
+
+Two things already measured on the running plant (with sensor noise, #66) shape how these will be read; both are discussed in #87. First, these controllers are proportional and keep a constant offset (the reactor pressure sits a few kPa below 2705), so the index is computed on the error's **fluctuation around its mean**, and the offset is reported apart. Second, at nominal operation the level errors are dominated by sensor noise, so their PI is low (≈ 0.2) without the tuning being bad — Bradu's own "Noise" category — and the reactor pressure valve barely moves (σ ≈ 0.008 %), so the gate may leave that loop unjudged (#86). The article's thresholds (`PI_L` = 0.4, `σ̄_y` = 1 %) come from CERN's plant and will not be used as they are.
+
 ## How the supervisor turns this into a verdict
 
 Every evaluation, for the active policy:
@@ -83,6 +119,14 @@ Every evaluation, for the active policy:
 
 The result is what you see in the IHM's K8S SUPERVISOR panel and in `kubectl describe plant tep`. The code is [Evaluate](../../../plant-supervisor/internal/evaluate/evaluate.go#L86) and the persistence rule [NextViolations](../../../plant-supervisor/internal/evaluate/evaluate.go#L130).
 
+When the policy declares control loops, the same evaluation then runs the second level, independently of the first:
+
+7. Ask the historian for the Predictability Index of each loop over `loopWindowSeconds` (`POST /loop-performance`).
+8. For each loop: if the valve's standard deviation is not above `minOutputStd`, the loop is **not judged**; otherwise it is unhealthy when its PI is below `minPredictability` ([EvaluateLoops](../../../plant-supervisor/internal/evaluate/loops.go#L42)).
+9. If at least one judged loop is unhealthy, increment the loop violation counter; otherwise reset it. After `loopPersistenceEvaluations` in a row, `ControlLoopsHealthy` turns `False`. If no loop could be judged, it is `Unknown` (`NoLoopEvaluated`).
+
+A historian failure on step 7 leaves only `ControlLoopsHealthy` as `Unknown`; the economic verdict of steps 1–6 stands.
+
 ## Decisions to revisit
 
 These are engineering choices, not facts from the paper, and several of them decide whether the #82 experiment will show the verdict flipping.
@@ -93,6 +137,7 @@ These are engineering choices, not facts from the paper, and several of them dec
 4. **A 60 s wall-clock window.** It covers about 2 simulated minutes. An economic cost is usually judged over much longer periods; a longer window (or a window in simulated time, using the plant's `clock.t_h` signal) would make J steadier.
 5. **Only normal limits.** Shutdown limits are left to the plant's interlock (#70). Whether the policy should also warn when the plant gets *close* to a shutdown limit is an open choice.
 6. **What the format can't express yet.** Rate-of-change limits, and limits on the controllers' own outputs (e.g. a valve saturated at 0 % or 100 %).
+7. **Loop thresholds.** `minPredictability` and `minOutputStd` for the three loops have to be calibrated on this plant (block 6 of #85); the article's values do not transfer (#87). Whether the proportional controllers should become PI controllers is an open question in #87.
 
 ## How to change it
 
