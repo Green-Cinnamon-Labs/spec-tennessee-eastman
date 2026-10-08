@@ -10,7 +10,7 @@ O experimento mais recente aparece primeiro.
 
 ## Experimento 26 — Critério de seguimento de setpoint no segundo nível de observação
 
-**Data:** 2026-10-08 — **Planejado** — spec #87 (e #85)
+**Data:** 2026-10-08 — **Implementado, falta rodar** — spec #87 (e #85)
 
 ### Observação
 
@@ -25,6 +25,10 @@ Somando ao PI um critério de **seguimento de setpoint** — offset máximo por 
 1. `plant-supervisor`: `maxOffset` (e, se fizer sentido, um limite de saturação) por malha em `controlLoops`; regra em `EvaluateLoops`: malha não saudável se falhar no PI **ou** no seguimento. O offset já está no `Plant.status`.
 2. Calibrar `maxOffset` com a gravação nominal de 2026-10-08 (`calibracao_2026-10-08.csv`). Atenção: com controle P a pressão tem offset nominal de ~9 kPa — o limiar precisa ficar acima disso.
 3. Repetir a rodada do Experimento 25 (IDV6, mesmas regras, velocidade 5) e comparar.
+
+**Por que o método do CERN não precisou disso.** As malhas do LHC são PID: com ação integral, uma malha que funciona não fica longe do alvo, e uma que perde a batalha satura a saída — e o próprio artigo exclui do índice as malhas saturadas. Além disso o sistema deles (UNICOS) já tem alarme de desvio; o índice de Bradu foi feito para *complementar* os alarmes, achando malhas mal sintonizadas que seguem o alvo. Aqui as malhas são P (ficam longe do alvo sem saturar) e não havia alarme de desvio no nível das malhas — o `maxOffset` é esse alarme.
+
+**Implementado (2026-10-08):** `maxOffset` por malha em `controlLoops` (plant-supervisor#4). Regra: a malha é ruim se falhar no PI **ou** no seguimento; o seguimento vale mesmo abaixo do portão de variabilidade, porque uma malha que perdeu o setpoint pode estar parada ou saturada. Valores na política Modo 1 (tep-lab#34): **pressão 20 kPa, níveis 1.0 %**. Sobre as gravações do dia, nenhum dispara em operação nominal (máximos 9.5 kPa e 0.17 %) e, aplicados ao Experimento 25, teriam disparado em t ≈ 3.13 (separador), 3.19 (stripper) e 3.80 (pressão) — os níveis **antes** do veredito econômico (3.29 / 3.46). Falta a rodada para confirmar.
 
 ### Resultado
 
