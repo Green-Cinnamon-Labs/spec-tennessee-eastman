@@ -62,7 +62,7 @@ revertido duas vezes**, em datas diferentes, por dois motivos documentados de in
 ÚNICO ponto de toda a história do projeto onde essa fórmula ficou ativa (um dia depois de reintroduzida,
 três dias antes de ser revertida de novo).
 
-**Parte 2 — confirmação empírica contra o próprio baseline.** Se `docs/simulations/
+**Parte 2 — confirmação empírica contra o próprio baseline.** Se `tep-lab/data/simulations/
 simulation_log_13.csv` (a trajetória validada usada em todos os Exp 21-23) foi gerada com a fórmula
 quase-estática ativa, `XMEAS(21)` deveria responder a `reactor.temperature` com peso `uar/
 (uar+cw_capacity) ≈ 0.69`. Ao longo das 20h do CSV, `XMEAS(9)` varia ~0.49°C — a fórmula preveria
@@ -148,7 +148,7 @@ fora desse ponto específico.
 ### Hipótese
 
 Se `physical_state()`/`heat_exchange()` de `Reactor` estiverem genuinamente corretos, alimentá-los
-com o estado EXATO de qualquer tick de `docs/simulations/simulation_log_13.csv` (a trajetória real
+com o estado EXATO de qualquer tick de `tep-lab/data/simulations/simulation_log_13.csv` (a trajetória real
 validada) deveria reproduzir a medida EXATA (`XMEAS(7)`/`XMEAS(9)`/`XMEAS(21)`) que a planta validada
 teve naquele mesmo instante — não só no ponto nominal do Exp 19, mas em QUALQUER ponto da trajetória.
 
@@ -439,7 +439,7 @@ RK4 explícito, não piorar. Isso já enfraquece a hipótese de "RK4 de passo fi
 estabilidade" como explicação principal.
 
 **Parte 3 — comparação exata contra uma trajetória validada.** O usuário forneceu
-`docs/simulations/simulation_log_13.csv` (cópia trazida pra `tep-plant/docs/simulations/`) — a
+`tep-lab/data/simulations/simulation_log_13.csv` (cópia trazida pra `tep-plant/docs/simulations/`) — a
 gravação REAL do Exp 13 (baseline validado, mesmo `te_exp3_snapshot.toml`/`application.toml`, física
 antiga confirmada correta, 20h simuladas sem distúrbio). Segundo teste,
 `diverges_from_the_validated_baseline_csv_early_not_gradually`: mesmo harness da Parte 1, mas em vez
@@ -819,15 +819,15 @@ Hipótese central: **temperatura sobe monotonicamente (sem malha fechada), press
 2. Ativar **IDV(3)** no painel "Disturbances" da IHM
 3. Observar: XMEAS(9) temperatura, XMEAS(7) pressão, XMV(10) CWS valve
 4. Rodar até novo SS ou até ISD — se a temperatura se estabilizar em 20h, o distúrbio é "benigno"
-5. Exportar CSV; salvar como `docs/simulations/simulation_log_17.0.csv`
-6. Plotar: `python -m tep_analysis.plot --csv docs/simulations/simulation_log_17.0.csv --smooth 11`
+5. Exportar CSV; salvar como `tep-lab/data/simulations/simulation_log_17.0.csv`
+6. Plotar: `python -m tep_analysis.plot --csv tep-lab/data/simulations/simulation_log_17.0.csv --smooth 11`
 
 **Variáveis a logar no CSV** (verificar se `tep-ihm` está capturando):
 - `xmeas_7` (pressão), `xmeas_9` (temperatura), `xmv_10` (CWS valve), `xmeas_2` (D feed flow)
 
 ### Resultado
 
-**CSV:** `docs/simulations/simulation_log.csv` | 718 linhas, t = 2.13 → 1102.77 h (~45 dias simulados)
+**CSV:** `tep-lab/data/simulations/simulation_log.csv` | 718 linhas, t = 2.13 → 1102.77 h (~45 dias simulados)
 
 | Variável           | Baseline  | Após IDV(3) — 1100h depois    |
 | ------------------ | --------- | ----------------------------- |
@@ -894,12 +894,12 @@ Debugger config: "IHM: planta local (gRPC + CSV)"
 3. Clicar em **IDV(2)** no painel "Disturbances" da IHM
 4. Observar: XMEAS(24) e XMEAS(30) (composição B), XMEAS(7) pressão, XMV(6) purge
 5. Rodar até novo SS ou t = 25h simuladas (~15 min de relógio a 100×)
-6. Exportar CSV via `⬇ CSV`; salvar em `docs/simulations/simulation_log_16.0.csv`
-7. Plotar: `python -m tep_analysis.plot --csv docs/simulations/simulation_log_16.0.csv`
+6. Exportar CSV via `⬇ CSV`; salvar em `tep-lab/data/simulations/simulation_log_16.0.csv`
+7. Plotar: `python -m tep_analysis.plot --csv tep-lab/data/simulations/simulation_log_16.0.csv`
 
 ### Resultado
 
-**CSV:** `docs/simulations/simulation_log.csv` | **Plot:** `docs/simulations/plots/simulation_log.png`
+**CSV:** `tep-lab/data/simulations/simulation_log.csv` | **Plot:** `tep-lab/data/simulations/plots/simulation_log.png`
 
 | Variável           | Baseline  | Observado após IDV(2)                      | Hipótese                     |
 | ------------------ | --------- | ------------------------------------------ | ---------------------------- |
@@ -978,12 +978,12 @@ Debugger config: "IHM: planta local (gRPC + CSV)"
 4. Clicar em **IDV(1)** no painel "Disturbances" da IHM
 5. Observar: XMEAS(9), XMEAS(7), XMV(6), XMEAS(10), composição do produto (corrente 9)
 6. Rodar até novo SS ou t = 25h simuladas (~15 min de relógio a 100×)
-7. Exportar CSV via `⬇ CSV`; salvar em `docs/simulations/simulation_log_15.0.csv`
-8. Plotar: `python -m tep_analysis.plot --csv docs/simulations/simulation_log_15.0.csv`
+7. Exportar CSV via `⬇ CSV`; salvar em `tep-lab/data/simulations/simulation_log_15.0.csv`
+8. Plotar: `python -m tep_analysis.plot --csv tep-lab/data/simulations/simulation_log_15.0.csv`
 
 ### Resultado
 
-**Arquivo:** `docs/simulations/simulation_log_15.0.csv` — **Plot:** `docs/simulations/plots/simulation_log_15.0.png`
+**Arquivo:** `tep-lab/data/simulations/simulation_log_15.0.csv` — **Plot:** `tep-lab/data/simulations/plots/simulation_log_15.0.png`
 
 A planta **não atingiu novo SS**. Colapsou por sobrepressão em t ≈ 2.5h simuladas. Comportamento observado:
 
@@ -1054,7 +1054,7 @@ Duração total: ~25h de tempo simulado (~15 min de relógio a 100×). Snapshot 
 
 ### Resultado
 
-**Arquivo:** `docs/simulations/simulation_log_14.0.csv` — **Plot:** `docs/simulations/plots/simulation_log_14.0.png`
+**Arquivo:** `tep-lab/data/simulations/simulation_log_14.0.csv` — **Plot:** `tep-lab/data/simulations/plots/simulation_log_14.0.png`
 
 A planta não atingiu novo steady-state. Entrou em colapso térmico durante o cold-start antes de o IDV(4) produzir efeito observável. Comportamento em t = 0,048 → 0,192 h:
 

@@ -103,7 +103,7 @@ kubectl get plcmachine tep-baseline -o jsonpath='{.status}' | python -m json.too
 ### Análise de dados (Python)
 
 ```bash
-cd tep-plant/analysis
+cd tep-lab/analysis
 poetry install
 poetry run plot --csv ../tennessee-eastman-service/simulation_log.csv
 ```
