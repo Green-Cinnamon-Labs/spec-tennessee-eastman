@@ -136,3 +136,77 @@ As janelas do historian são em **tempo de relógio**, mas a planta roda mais r�
 | `maxCost` | **170.6 $/h** (179 → 170.6) | É o custo do caso base de Downs & Vogel. J nominal = 166.83 ± 0.18 $/h, então J precisa subir ~2.3 % para estourar — sensível o bastante para o IDV6 |
 
 **Gravação da calibração:** `tep-lab/data/experiment_82/calibracao_2026-10-08.csv` — `clock.t_h` 1.75 → 5.06 h (~3.3 h simuladas, 20 min de relógio), 41 avaliações, 100 % `Compliant` e `LOOPS True`.
+
+---
+
+## Bloco 7 — suas atividades (rodada do #82 com IDV6)
+
+Objetivo: mostrar que o Kubernetes percebe a planta se degradando **com as regras fixas** — a política calibrada no bloco 6 não muda durante a rodada. Liga-se um distúrbio, e observa-se os dois níveis lado a lado: o econômico (J, `PolicyCompliant`) e o da qualidade das malhas (`ControlLoopsHealthy`).
+
+Distúrbio: **IDV6**, perda total da alimentação de A (Downs & Vogel, Tabela 8). É lento e severo: no TEP original leva horas de processo para levar a planta aos limites. Por isso a rodada é longa (~1 h de relógio na velocidade 5).
+
+Divisão: **você** opera (planta, UaExpert, gravação) e anota os marcos; **Claude** gera o gráfico e o resumo e ajuda a ler.
+
+### 7.0 Subir e conferir (inclui a pendência do bloco 6)
+
+- [ ] F5 no tep-plant, no tep-historian e no tep-ihm (mesmas configurações do bloco 6).
+- [ ] No UaExpert: `control.set_speed(5.0)`. Anotar o `clock.t_h` desse momento.
+- [ ] Esperar ~5 min de relógio (`clock.t_h` ≈ momento do set_speed + 0.85), para a janela das malhas ficar toda na velocidade 5.
+- [ ] Conferir a política calibrada (pendência do bloco 6): `kubectl get plants` mostra `Compliant` e `LOOPS True`, e `kubectl describe plant tep` mostra `CostWithinBudget` com "budget 170.60".
+
+### 7.1 Gravar e registrar o trecho nominal
+
+- [ ] Iniciar a gravação, num terminal em `C:\Projetos\tep`:
+  ```bash
+  python tep-lab/local/scripts/record_run.py --interval 10 --out tep-lab/data/experiment_82/idv6_2026-10-08.csv
+  ```
+- [ ] Deixar ~5 min de relógio sem distúrbio (~0.8 h simulada) — é a referência "antes".
+
+### 7.2 Ligar o IDV6
+
+- [ ] No UaExpert, escrever **`1`** em `disturbance.idv6`.
+- [ ] **Anotar o `clock.t_h` do momento** (T₀) na tabela abaixo.
+- [ ] Conferir que pegou: `xmeas.stream1.flow_rate` (alimentação de A) cai para ~0.
+
+### 7.3 Observar (até o veredito virar, ou ~T₀ + 7 h)
+
+No painel ⬡ K8S SUPERVISOR, acompanhar e anotar na tabela:
+
+- [ ] J subindo — quando passa de 170.6 (`CostWithinBudget` vira False).
+- [ ] Qual condition cai **primeiro**: custo, metas (`TargetsMet`) ou limites (`ConstraintsSatisfied`).
+- [ ] Quando `PolicyCompliant` vira False e a fase vira `NonCompliant` (depois de 3 avaliações ruins seguidas).
+- [ ] O que acontece com o PI das malhas de nível e com `ControlLoopsHealthy` — sai da faixa nominal (0.15–0.40)?
+- [ ] Se a pressão do reator passa a ser julgada (a válvula de purga começa a se mexer?).
+- [ ] Se `status.shutdown_detected` vira 1 no UaExpert (a planta continua rodando mesmo assim; o shutdown é só diagnóstico, #70).
+- [ ] Parar de observar quando o veredito tiver virado e ficado estável, ou em `clock.t_h` ≈ T₀ + 7.
+
+### 7.4 Desligar o IDV6 e ver a recuperação
+
+- [ ] No UaExpert, escrever **`0`** em `disturbance.idv6`. **Anotar o `clock.t_h`** (T₁).
+- [ ] Deixar ~10 min de relógio (~1.7 h simulada) e observar se o veredito volta a `Compliant` e as malhas a saudáveis.
+- [ ] Parar a gravação com Ctrl+C.
+
+### 7.5 Ler o resultado (Claude, com você)
+
+- [ ] Gráfico no tempo, com os marcos (Claude roda; de dentro de `tep-lab/analysis`):
+  ```bash
+  poetry run run-timeline ../data/experiment_82/idv6_2026-10-08.csv --mark T₀:"IDV6 ligado" --mark T₁:"IDV6 desligado"
+  ```
+- [ ] Resumo: `python tep-lab/local/scripts/summarize_run.py tep-lab/data/experiment_82/idv6_2026-10-08.csv`.
+- [ ] Registrar como novo experimento em `experimentos.md`, atualizar `experiment_82.md` e a #82/#85; commitar CSV e PNG em `tep-lab/data/experiment_82/`.
+
+### Anotações (preencher durante a rodada)
+
+| Marco | `clock.t_h` | Observação |
+|---|---|---|
+| `control.set_speed(5.0)` | | |
+| Início da gravação | | |
+| T₀ — IDV6 ligado | | |
+| J passa de 170.6 (`CostWithinBudget` False) | | |
+| Primeira condition a cair | | qual: |
+| `PolicyCompliant` False / `NonCompliant` | | |
+| `ControlLoopsHealthy` muda? | | |
+| `shutdown_detected` = 1? | | |
+| T₁ — IDV6 desligado | | |
+| Volta a `Compliant` | | |
+| Fim da gravação | | |
