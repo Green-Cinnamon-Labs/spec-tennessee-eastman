@@ -30,11 +30,11 @@ How much time each signal is averaged over before it is judged. The supervisor a
 
 The window is in **wall-clock** time. The plant runs at about 2× real time, so 60 s covers about 2 simulated minutes. That is short compared to the TEP's slow dynamics (levels and compositions take hours of simulated time to settle), which is one of the decisions to revisit below.
 
-### `maxCost: 179.0` — [line 16](../../../tep-lab/local/k8s/tep/policy-mode1.yaml#L16)
+### `maxCost: 170.6` — [line 16](../../../tep-lab/local/k8s/tep/policy-mode1.yaml#L16)
 
 The **budget** for J, in the cost function's unit ($/h). If the averaged J goes above it, the condition `CostWithinBudget` becomes `False`. This is the economic part of the verdict: the plant may be producing the right thing within its limits and still be operating too expensively.
 
-179 is **not** a number from the paper. It is a policy choice: about 5 % above the paper's base-case reference of 170.6 $/h. The field is optional; without it J is still computed and shown, but never judged.
+170.6 $/h is the paper's base-case operating cost (Table 9). It was set in the calibration of 2026-10-08 (block 6 of #85): at nominal operation the simulated plant runs at 166.83 ± 0.18 $/h, so J has to rise about 2.3 % before the budget fails — sensitive enough for a disturbance like IDV6 to show, far enough from nominal (about 20 standard deviations) never to trip by noise. Until then the budget was 179, an arbitrary 7 % margin. The field is optional; without it J is still computed and shown, but never judged.
 
 ### `persistenceEvaluations: 3` — [line 17](../../../tep-lab/local/k8s/tep/policy-mode1.yaml#L17)
 
@@ -72,7 +72,7 @@ These are the **normal** operating limits of Table 6, deliberately not the shutd
 
 ### `controlLoops` and the loop settings — the second observation level (#85)
 
-> **Status:** since block 4 of #85 (tep-lab#27), `policy-mode1.yaml` declares the three loops below, with **provisional** thresholds (`minPredictability: 0.1`, `minOutputStd: 0.05`) that will be calibrated in block 6. At nominal operation in Kind: separator level PI 0.34 and stripper level PI 0.32, both judged and healthy; reactor pressure below the variability gate (valve σ 0.009 %), not judged.
+> **Status:** since block 4 of #85 (tep-lab#27), `policy-mode1.yaml` declares the three loops below. The thresholds were **calibrated** in block 6 (tep-lab#31) from 41 nominal evaluations: `minPredictability: 0.12` (the level loops' PI ranged 0.147–0.40), `minOutputStd: 0.05` (level valves 0.28–0.34 % pass; the purge valve, 0.012–0.015 %, does not, so the reactor pressure loop is not judged). At nominal operation in Kind: separator level PI 0.34 and stripper level PI 0.32, both judged and healthy; reactor pressure below the variability gate (valve σ 0.009 %), not judged.
 
 Besides the economic criteria above, a policy can declare the plant's **control loops** whose *quality* must be watched. This is the second observation level: not "is the plant operating cheaply and inside its envelope?", but "are the controllers doing their job well?". The index is the Predictability Index of Bradu et al. (2017): an autoregressive model is fitted to each loop's error `SP − PV` and asked how much of it it can predict a little ahead. A regular, predictable error gives PI near 1; an erratic error, like white noise, gives PI near 0. The historian computes the index; the supervisor judges it.
 
@@ -131,13 +131,13 @@ A historian failure on step 7 leaves only `ControlLoopsHealthy` as `Unknown`; th
 
 These are engineering choices, not facts from the paper, and several of them decide whether the #82 experiment will show the verdict flipping.
 
-1. **The budget of 179 $/h is arbitrary.** The simulated plant runs at about 166 $/h, so a disturbance has to raise J by about 8 % before the budget fails. A tighter budget makes the cost condition more sensitive; a looser one makes it mostly about the limits.
+1. **The budget.** ~~179 $/h was arbitrary~~ — calibrated to 170.6 $/h, the paper's base case (J has to rise ~2.3 % above nominal). A tighter budget would make the cost condition more sensitive; a looser one would make it mostly about the limits.
 2. **±5 % applied to everything.** The paper's ±5 % is about product *flow*. For composition, ±5 % of 53.7 mol % is ±2.7 mol %, which may be too loose to detect a product-quality problem.
 3. **G/H ratio as two separate targets.** Checking the ratio itself would need a new feature in the policy format (a target on the ratio of two signals).
 4. **A 60 s wall-clock window.** It covers about 2 simulated minutes. An economic cost is usually judged over much longer periods; a longer window (or a window in simulated time, using the plant's `clock.t_h` signal) would make J steadier.
 5. **Only normal limits.** Shutdown limits are left to the plant's interlock (#70). Whether the policy should also warn when the plant gets *close* to a shutdown limit is an open choice.
 6. **What the format can't express yet.** Rate-of-change limits, and limits on the controllers' own outputs (e.g. a valve saturated at 0 % or 100 %).
-7. **Loop thresholds.** `minPredictability` and `minOutputStd` for the three loops have to be calibrated on this plant (block 6 of #85); the article's values do not transfer (#87). Whether the proportional controllers should become PI controllers is an open question in #87.
+7. **Loop thresholds.** Calibrated on this plant in block 6 of #85 (`minPredictability` 0.12, `minOutputStd` 0.05); the article's values do not transfer (#87). Whether the proportional controllers should become PI controllers is an open question in #87.
 
 ## How to change it
 

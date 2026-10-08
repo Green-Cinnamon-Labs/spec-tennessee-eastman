@@ -39,7 +39,7 @@ Read the diagram as a chain of translations. The plant only produces raw signals
 | #80   | TEP manifests and Kind infra      | tep-lab#25                  | Closed            |
 | #81   | IHM verdict panel                 | tep-ihm#2                   | Closed            |
 | #82   | Experiment under disturbance      | —                           | Open, not started |
-| #85   | Control-loop quality (2nd level)  | blocks 1–5 merged (below)   | Open, blocks 6–7  |
+| #85   | Control-loop quality (2nd level)  | blocks 1–6 merged (below)   | Open, block 7     |
 | #66   | Sensor noise                      | monjolo#3, tep-plant#4      | Closed            |
 | #86   | Analyzers, pressure loop          | —                           | Open              |
 | #87   | Loop-quality methods vs P loops   | tep-historian#5 (part)      | Open, discussion  |
@@ -50,7 +50,7 @@ The epic #77 stays open until #82 is done. #64 (`tep-operator` gRPC → OPC-UA) 
 
 This is the experiment that produces evidence for the thesis: switch on a disturbance (e.g. IDV6, loss of the A feed) and watch J rise and `PolicyCompliant` flip to `False`. The open point is time: IDV6 takes hours of *simulated* time to push the plant to its limits, and the plant runs at about 2× real time, so the run length and/or simulation speed must be decided first.
 
-Since #85, the experiment shows two levels side by side: J and `PolicyCompliant` (economic), and `ControlLoopsHealthy` (control-loop quality). The preparatory work is split in seven blocks tracked in #85: 0 spec, 1 sensor noise, 2 historian, 3 supervisor, 4 manifests, 5 IHM — **done** — and 6 calibration, 7 the run itself.
+Since #85, the experiment shows two levels side by side: J and `PolicyCompliant` (economic), and `ControlLoopsHealthy` (control-loop quality). The preparatory work is split in seven blocks tracked in #85: 0 spec, 1 sensor noise, 2 historian, 3 supervisor, 4 manifests, 5 IHM, 6 calibration — **done** — and 7 the run itself.
 
 Also worth recording: at nominal operation J comes out around 166 $/h, against 170.6 $/h in the paper (−2.5 %). That gap is a finding about how close the simulated plant is to the original, and it relates to #19 (validation against reference data).
 
@@ -97,7 +97,7 @@ The supervisor is the program that turns the declared policy into a verdict. It 
 Because the supervisor is generic, all of the TEP lives in these three YAML files. They are the only place where Downs & Vogel's numbers appear.
 
 - **Cost function** — the 12 terms of Downs & Vogel's Table 9: raw material lost in the purge (7 components), raw material lost in the product (3), compressor power and steam. Each coefficient has a comment showing how it was derived (price × unit conversion), so anyone can check it against the paper. [cost-function-downs-vogel.yaml](../../../tep-lab/local/k8s/tep/cost-function-downs-vogel.yaml).
-- **Mode 1 policy** — the base case: product flow and G/H composition must stay within ±5 % of the paper's values, the normal operating limits of Table 6 must hold (reactor pressure, temperature, vessel levels), J must stay under 179 $/h, and persistence is 3. The budget of 179 is a choice, about 5 % above the paper's 170.6, not a number from the paper. Since block 4 of #85 it also declares the plant's three control loops (reactor pressure, separator level, stripper level), with provisional thresholds until the calibration of block 6. At nominal operation the two level loops are judged healthy and the reactor pressure loop stays below the variability gate. [policy-mode1.yaml](../../../tep-lab/local/k8s/tep/policy-mode1.yaml).
+- **Mode 1 policy** — the base case: product flow and G/H composition must stay within ±5 % of the paper's values, the normal operating limits of Table 6 must hold (reactor pressure, temperature, vessel levels), J must stay under 170.6 $/h (the paper's base-case cost, set in the calibration of block 6 of #85), and persistence is 3. Since block 4 of #85 it also declares the plant's three control loops (reactor pressure, separator level, stripper level), with thresholds calibrated in block 6 (tep-lab#31). At nominal operation the two level loops are judged healthy and the reactor pressure loop stays below the variability gate. [policy-mode1.yaml](../../../tep-lab/local/k8s/tep/policy-mode1.yaml).
 - **The plant** — the `Plant tep` object: points at the historian (`host.docker.internal:8090`, which is how a Pod inside Kind reaches your machine) and sets Mode 1 as the active policy. To try another policy, you change `policyRef` here. [plant.yaml](../../../tep-lab/local/k8s/tep/plant.yaml).
 
 ## Cluster infrastructure (Kind)

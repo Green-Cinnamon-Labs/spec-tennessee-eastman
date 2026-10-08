@@ -74,63 +74,65 @@ Divisão: **você** sobe e opera a planta e toma as decisões; **Claude** prepar
 
 ### 6.0 Antes de começar
 
-- [ ] Confirmar que o Claude parou a planta e o historian que estavam rodando em background (as portas 4840, 8090 e 8080 precisam estar livres).
-- [ ] Confirmar que o Kind está de pé: `kubectl get pods` mostra `plant-supervisor-...` em `Running`.
+- [x] Confirmar que o Claude parou a planta e o historian que estavam rodando em background (as portas 4840, 8090 e 8080 precisam estar livres).
+- [x] Confirmar que o Kind está de pé: `kubectl get pods` mostra `plant-supervisor-...` em `Running`.
 
 ### 6.1 Ferramentas (Claude prepara, você revisa)
 
-- [ ] Ler o script de gravação [`tep-lab/local/scripts/record_run.py`](../../../tep-lab/local/scripts/record_run.py): a cada N segundos grava numa linha de CSV o tempo simulado (`clock.t_h`), J, a fase, as conditions e, por malha, PI, offset, σ da válvula e se foi julgada.
-- [ ] Ler o script de resumo [`tep-lab/local/scripts/summarize_run.py`](../../../tep-lab/local/scripts/summarize_run.py): lê o CSV e mostra, por malha, a distribuição do PI e do σ da válvula, e a média e a dispersão de J.
+- [x] Ler o script de gravação [`tep-lab/local/scripts/record_run.py`](../../../tep-lab/local/scripts/record_run.py): a cada N segundos grava numa linha de CSV o tempo simulado (`clock.t_h`), J, a fase, as conditions e, por malha, PI, offset, σ da válvula e se foi julgada.
+- [x] Ler o script de resumo [`tep-lab/local/scripts/summarize_run.py`](../../../tep-lab/local/scripts/summarize_run.py): lê o CSV e mostra, por malha, a distribuição do PI e do σ da válvula, e a média e a dispersão de J.
 
 ### 6.2 Subir tudo (você)
 
-- [ ] F5 no tep-plant: **"tep-plant (com adaptador OPC-UA)"**.
-- [ ] F5 no tep-historian: **"Historian: planta local (OPC-UA)"**. Conferir `http://localhost:8090/healthz` → `"connected": true`.
-- [ ] F5 no tep-ihm: **"IHM: planta local (plant OPC-UA + k8s)"**. Abrir `http://localhost:8080` e o painel ⬡ K8S SUPERVISOR.
-- [ ] Conferir: `kubectl get plants` mostra a coluna `LOOPS`, e o painel mostra a linha "Malhas" e a tabela das 3 malhas.
+- [x] F5 no tep-plant: **"tep-plant (com adaptador OPC-UA)"**.
+- [x] F5 no tep-historian: **"Historian: planta local (OPC-UA)"**. Conferir `http://localhost:8090/healthz` → `"connected": true`.
+- [x] F5 no tep-ihm: **"IHM: planta local (plant OPC-UA + k8s)"**. Abrir `http://localhost:8080` e o painel ⬡ K8S SUPERVISOR.
+- [x] Conferir: `kubectl get plants` mostra a coluna `LOOPS`, e o painel mostra a linha "Malhas" e a tabela das 3 malhas.
 
 ### 6.3 Escolher a velocidade da simulação (decisão sua)
 
 As janelas do historian são em **tempo de relógio**, mas a planta roda mais rápido que o tempo real. Na velocidade atual (~2×), a janela de 300 s das malhas cobre ~10 min simulados; a 10×, cobriria ~50 min. A constante de tempo `T` das malhas (30 s) também é de relógio, então muda de significado com a velocidade.
 
-- [ ] Decidir a velocidade — **a mesma** que será usada no experimento #82. Sugestão: **5** (≈ 10× o tempo real). A velocidade só muda a pausa entre ticks, não a física: o passo simulado é sempre 1 s, então os resultados são os mesmos em qualquer velocidade.
-- [ ] Decidir se `loopWindowSeconds`, `timeConstantSeconds` e `windowSeconds` mudam para essa velocidade.
-- [ ] Registrar a decisão e o porquê (abaixo, em "Decisões").
+- [x] Decidir a velocidade — **a mesma** que será usada no experimento #82. Sugestão: **5** (≈ 10× o tempo real). A velocidade só muda a pausa entre ticks, não a física: o passo simulado é sempre 1 s, então os resultados são os mesmos em qualquer velocidade.
+- [x] Decidir se `loopWindowSeconds`, `timeConstantSeconds` e `windowSeconds` mudam para essa velocidade.
+- [x] Registrar a decisão e o porquê (abaixo, em "Decisões").
 
 ### 6.4 Rodada de calibração (você roda, observamos juntos)
 
-- [ ] Ajustar a velocidade no **UaExpert**: chamar o método `control.set_speed` com o argumento escolhido (Double; `1` = 2× o tempo real, `N` = 2N×, `0` = o mais rápido possível). Os botões de velocidade da IHM não funcionam (o backend ignora). Conferir: a 5, `clock.t_h` avança ~0.0028 h por segundo de relógio.
-- [ ] Deixar a planta estabilizar alguns minutos depois de subir.
-- [ ] Iniciar a gravação, num terminal na pasta `C:\Projetos	ep`:
+- [x] Ajustar a velocidade no **UaExpert**: chamar o método `control.set_speed` com o argumento escolhido (Double; `1` = 2× o tempo real, `N` = 2N×, `0` = o mais rápido possível). Os botões de velocidade da IHM não funcionam (o backend ignora). Conferir: a 5, `clock.t_h` avança ~0.0028 h por segundo de relógio.
+- [x] Deixar a planta estabilizar alguns minutos depois de subir.
+- [x] Iniciar a gravação, num terminal na pasta `C:\Projetos	ep`:
   ```bash
   python tep-lab/local/scripts/record_run.py --interval 10 --out tep-lab/data/experiment_82/calibracao_2026-10-08.csv
   ```
   Cada leitura imprime uma linha (`t=` tempo simulado, J, fase, veredito das malhas e o PI de cada uma). Se `t=None`, o historian não está respondendo.
-- [ ] Deixar rodar **20–30 min de relógio**, sem ligar nenhum distúrbio.
-- [ ] Enquanto roda, observar no painel: o PI das malhas oscilando, a pressão como "não julgada", J em torno de ~166–169 $/h.
-- [ ] Parar a gravação com Ctrl+C.
+- [x] Deixar rodar **20–30 min de relógio**, sem ligar nenhum distúrbio.
+- [x] Enquanto roda, observar no painel: o PI das malhas oscilando, a pressão como "não julgada", J em torno de ~166–169 $/h.
+- [x] Parar a gravação com Ctrl+C.
 
 ### 6.5 Ler os dados e escolher os limiares (decisão sua, com o Claude)
 
-- [ ] Rodar o resumo: `python tep-lab/local/scripts/summarize_run.py tep-lab/data/experiment_82/calibracao_2026-10-08.csv`.
-- [ ] **`minPredictability`** por malha: ficar abaixo do menor PI visto em operação nominal (com margem), para que o normal nunca dispare. Hoje o stripper chegou a 0.096.
-- [ ] **`minOutputStd`**: decidir entre o σ da válvula de purga (~0.009 %) e o dos níveis (~0.3 %). Decidir também se a malha de pressão continua fora do julgamento (#86) ou sai da política.
-- [ ] **`maxCost`**: rever a partir da média e da dispersão de J (hoje ~166–169 $/h contra orçamento de 179).
-- [ ] Editar `tep-lab/local/k8s/tep/policy-mode1.yaml` com os valores e aplicar: `kubectl apply -f tep-lab/local/k8s/tep/policy-mode1.yaml`.
-- [ ] Conferir no painel, por alguns minutos, que a operação nominal fica estável em `Compliant` e "Malhas: saudáveis".
+- [x] Rodar o resumo: `python tep-lab/local/scripts/summarize_run.py tep-lab/data/experiment_82/calibracao_2026-10-08.csv`.
+- [x] **`minPredictability`** por malha: ficar abaixo do menor PI visto em operação nominal (com margem), para que o normal nunca dispare. Hoje o stripper chegou a 0.096.
+- [x] **`minOutputStd`**: decidir entre o σ da válvula de purga (~0.009 %) e o dos níveis (~0.3 %). Decidir também se a malha de pressão continua fora do julgamento (#86) ou sai da política.
+- [x] **`maxCost`**: rever a partir da média e da dispersão de J (hoje ~166–169 $/h contra orçamento de 179).
+- [x] Editar `tep-lab/local/k8s/tep/policy-mode1.yaml` com os valores e aplicar: `kubectl apply -f tep-lab/local/k8s/tep/policy-mode1.yaml`.
+- [ ] Conferir no painel, por alguns minutos, que a operação nominal fica estável em `Compliant` e "Malhas: saudáveis". **Pendente:** a política calibrada foi aplicada com a planta já desligada; conferir ao subir de novo.
 
 ### 6.6 Fechamento (Claude)
 
-- [ ] Registrar os parâmetros escolhidos e o raciocínio em `experiment_82.md` e na #85.
-- [ ] Commitar o CSV da calibração em `tep-lab/data/experiment_82/` e a política atualizada.
+- [x] Registrar os parâmetros escolhidos e o raciocínio em `experiment_82.md` e na #85.
+- [x] Commitar o CSV da calibração em `tep-lab/data/experiment_82/` e a política atualizada.
 
 ### Decisões (preencher durante o bloco)
 
 | Decisão | Valor escolhido | Por quê |
 |---|---|---|
-| Velocidade da simulação | | |
-| `windowSeconds` / `loopWindowSeconds` / `timeConstantSeconds` | | |
-| `minPredictability` (por malha) | | |
-| `minOutputStd` | | |
-| Malha de pressão: julgar ou não | | |
-| `maxCost` | | |
+| Velocidade da simulação | **5** (≈ 10× o tempo real), via `control.set_speed` no UaExpert | O IDV6 (~7 h simuladas) cabe em ~40 min de relógio. A velocidade só muda a pausa entre ticks, não a física. Historian ajustado para ler a cada 100 ms e reter 900 s (tep-historian#6, tep-lab#30) |
+| `windowSeconds` / `loopWindowSeconds` / `timeConstantSeconds` | **60 / 300 / 30 s** (mantidos) | Na velocidade 5 cobrem ~10 / ~50 / ~5 min de processo. J ficou estável (σ 0.18 $/h) com a janela de 60 s |
+| `minPredictability` | **0.12** (0.1 → 0.12) | PI nominal dos níveis entre 0.147 e 0.40 em 41 avaliações: 0.12 fica abaixo do mínimo, com margem, para o normal nunca disparar |
+| `minOutputStd` | **0.05 %** (mantido) | σ das válvulas de nível 0.28–0.34 % passa folgado; o da purga, 0.012–0.015 %, não |
+| Malha de pressão: julgar ou não | **Não julgar** (continua na política, fica abaixo do portão) | A válvula de purga quase não se mexe; baixar o portão para 0.01 a faria entrar e sair do julgamento a cada flutuação. Achado registrado na #86 |
+| `maxCost` | **170.6 $/h** (179 → 170.6) | É o custo do caso base de Downs & Vogel. J nominal = 166.83 ± 0.18 $/h, então J precisa subir ~2.3 % para estourar — sensível o bastante para o IDV6 |
+
+**Gravação da calibração:** `tep-lab/data/experiment_82/calibracao_2026-10-08.csv` — `clock.t_h` 1.75 → 5.06 h (~3.3 h simuladas, 20 min de relógio), 41 avaliações, 100 % `Compliant` e `LOOPS True`.

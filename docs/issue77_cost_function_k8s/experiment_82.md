@@ -25,11 +25,31 @@ O experimento vai mostrar **dois níveis de observação**: a função de custo 
 
 O trabalho é feito em blocos, um de cada vez, acompanhado na #85.
 
+## Calibração (bloco 6, 2026-10-08)
+
+Rodada de operação nominal, com ruído nos sensores e sem distúrbio, na velocidade 5 (≈ 10× o tempo real), gravada com `record_run.py`: `clock.t_h` de 1.75 a 5.06 h (~3.3 h de processo, 20 min de relógio), 41 avaliações do supervisor, todas `Compliant` e com as malhas saudáveis. Arquivo: `tep-lab/data/experiment_82/calibracao_2026-10-08.csv`.
+
+| Grandeza | Resultado nominal |
+|---|---|
+| J | 166.83 ± 0.18 $/h (166.47 a 167.19) |
+| PI — nível do separador | 0.15 a 0.40 (mediana 0.27); σ da válvula 0.29–0.34 % |
+| PI — nível do stripper | 0.15 a 0.35 (mediana 0.25); σ da válvula 0.28–0.33 % |
+| PI — pressão do reator | 0.17 a 0.38 (mediana 0.31); σ da válvula 0.012–0.015 %, offset 8.7 kPa — fica abaixo do portão, não é julgada |
+
+Parâmetros escolhidos a partir disso e aplicados em `policy-mode1.yaml` (tep-lab#31):
+
+- **`maxCost` 179 → 170.6 $/h** — o custo do caso base de Downs & Vogel; J precisa subir ~2.3 % acima do nominal para estourar.
+- **`minPredictability` 0.1 → 0.12** — abaixo do menor PI nominal (0.147), com margem.
+- **`minOutputStd` 0.05 %** (mantido) — níveis julgados, pressão não (#86).
+- Velocidade 5 e janelas 60 / 300 / 30 s mantidas para o experimento.
+
+O PI baixo dos níveis em operação nominal reflete o ruído do sensor dominando o erro (categoria "Noise" de Bradu), não sintonia ruim (#87). O experimento vai mostrar se, sob distúrbio, o PI sai dessa faixa.
+
 ## Decisões antes de rodar
 
-- **Velocidade da simulação** — rodar a planta mais rápido que 2× o tempo real (tornar o `tick_interval` configurável é a #69), ou aceitar uma rodada longa.
+- **Velocidade da simulação** — **resolvido:** velocidade 5 (≈ 10× o tempo real) pelo método OPC-UA `control.set_speed`; a base de tempo única em tempo simulado fica para a #88.
 - **Janela e intervalo** — manter 60 s / 30 s, ou alongar a janela para que J seja julgada sobre um trecho relevante de tempo simulado (ou passar a janela para tempo simulado, usando o sinal `clock.t_h` da planta).
-- **Orçamento** — com `maxCost: 179` e J ≈ 166, J precisa subir cerca de 8 % antes de a condição de custo falhar; decidir se essa é a sensibilidade desejada (ver [operating_policy_mode1.md](operating_policy_mode1.md), "Decisions to revisit").
+- **Orçamento** — ~~com `maxCost: 179` e J ≈ 166, J precisa subir cerca de 8 %~~ **resolvido na calibração:** `maxCost` 170.6 $/h, J precisa subir ~2.3 %.
 - **Registro** — o `Plant.status` guarda só o veredito mais recente, então a rodada precisa de uma série temporal: um script consultando `kubectl get plant tep -o json` (junto com o `clock.t_h` da planta), o log do próprio supervisor (uma linha por avaliação), ou as sessões SQLite da IHM.
 - **Quais distúrbios** — só o IDV6, ou o IDV6 mais um mais rápido (IDV1) para contraste; e se a planta deve chegar aos limites de shutdown (o shutdown da planta hoje é só diagnóstico, #70).
 
