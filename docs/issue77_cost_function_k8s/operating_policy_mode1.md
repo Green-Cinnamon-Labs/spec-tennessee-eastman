@@ -72,7 +72,7 @@ These are the **normal** operating limits of Table 6, deliberately not the shutd
 
 ### `controlLoops` and the loop settings — the second observation level (#85)
 
-> **Status:** the fields exist in the `OperatingPolicy` type (plant-supervisor#3), but `policy-mode1.yaml` does not declare any loop yet. The three loops below are added in block 4 of #85, with **provisional** thresholds that will be calibrated in block 6.
+> **Status:** since block 4 of #85 (tep-lab#27), `policy-mode1.yaml` declares the three loops below, with **provisional** thresholds (`minPredictability: 0.1`, `minOutputStd: 0.05`) that will be calibrated in block 6. At nominal operation in Kind: separator level PI 0.34 and stripper level PI 0.32, both judged and healthy; reactor pressure below the variability gate (valve σ 0.009 %), not judged.
 
 Besides the economic criteria above, a policy can declare the plant's **control loops** whose *quality* must be watched. This is the second observation level: not "is the plant operating cheaply and inside its envelope?", but "are the controllers doing their job well?". The index is the Predictability Index of Bradu et al. (2017): an autoregressive model is fitted to each loop's error `SP − PV` and asked how much of it it can predict a little ahead. A regular, predictable error gives PI near 1; an erratic error, like white noise, gives PI near 0. The historian computes the index; the supervisor judges it.
 
@@ -96,7 +96,7 @@ And three settings shared by all loops ([lines 127–146](../../../plant-supervi
 - **`loopSampleIntervalSeconds`** (default 1) — the sampling `t_s`; the historian resamples the series to it before fitting the model.
 - **`loopPersistenceEvaluations`** (default 3) — Bradu's `N`: how many evaluations in a row with an unhealthy loop before `ControlLoopsHealthy` turns `False`. It has its own counter, separate from the economic one.
 
-The three TEP loops that block 4 will declare are the plant's three proportional controllers, the classic Downs & Vogel ones:
+The three TEP loops declared in the file are the plant's three proportional controllers, the classic Downs & Vogel ones:
 
 | `name` | `pv` | `op` | `setpoint` |
 |---|---|---|---|
