@@ -9,6 +9,10 @@
 			"path": "../monjolo"
 		},
 		{
+			"name": "plant-supervisor",
+			"path": "../plant-supervisor"
+		},
+		{
 			"name": "tep-plant",
 			"path": "../tep-plant"
 		},
@@ -19,10 +23,6 @@
 		{
 			"name": "tep-historian",
 			"path": "../tep-historian"
-		},
-		{
-			"name": "plant-supervisor",
-			"path": "../plant-supervisor"
 		},
 		{
 			"name": "tep-lab",
