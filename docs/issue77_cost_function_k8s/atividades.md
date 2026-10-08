@@ -79,8 +79,8 @@ Divisão: **você** sobe e opera a planta e toma as decisões; **Claude** prepar
 
 ### 6.1 Ferramentas (Claude prepara, você revisa)
 
-- [ ] Ler o script de gravação `tep-lab/local/scripts/record_run.py`: a cada N segundos grava numa linha de CSV o tempo simulado (`clock.t_h`), J, a fase, as conditions e, por malha, PI, offset, σ da válvula e se foi julgada.
-- [ ] Ler o script de resumo `tep-lab/local/scripts/summarize_run.py`: lê o CSV e mostra, por malha, a distribuição do PI e do σ da válvula, e a média e a dispersão de J.
+- [ ] Ler o script de gravação [`tep-lab/local/scripts/record_run.py`](../../../tep-lab/local/scripts/record_run.py): a cada N segundos grava numa linha de CSV o tempo simulado (`clock.t_h`), J, a fase, as conditions e, por malha, PI, offset, σ da válvula e se foi julgada.
+- [ ] Ler o script de resumo [`tep-lab/local/scripts/summarize_run.py`](../../../tep-lab/local/scripts/summarize_run.py): lê o CSV e mostra, por malha, a distribuição do PI e do σ da válvula, e a média e a dispersão de J.
 
 ### 6.2 Subir tudo (você)
 
@@ -101,14 +101,18 @@ As janelas do historian são em **tempo de relógio**, mas a planta roda mais r�
 
 - [ ] Ajustar a velocidade escolhida na IHM.
 - [ ] Deixar a planta estabilizar alguns minutos depois de subir.
-- [ ] Iniciar a gravação: `python tep-lab/local/scripts/record_run.py --out tep-lab/data/experiment_82/calibracao_<data>.csv` (o comando exato vem com o script).
+- [ ] Iniciar a gravação, num terminal na pasta `C:\Projetos	ep`:
+  ```bash
+  python tep-lab/local/scripts/record_run.py --interval 10 --out tep-lab/data/experiment_82/calibracao_2026-10-08.csv
+  ```
+  Cada leitura imprime uma linha (`t=` tempo simulado, J, fase, veredito das malhas e o PI de cada uma). Se `t=None`, o historian não está respondendo.
 - [ ] Deixar rodar **20–30 min de relógio**, sem ligar nenhum distúrbio.
 - [ ] Enquanto roda, observar no painel: o PI das malhas oscilando, a pressão como "não julgada", J em torno de ~166–169 $/h.
 - [ ] Parar a gravação com Ctrl+C.
 
 ### 6.5 Ler os dados e escolher os limiares (decisão sua, com o Claude)
 
-- [ ] Rodar o resumo: `python tep-lab/local/scripts/summarize_run.py tep-lab/data/experiment_82/calibracao_<data>.csv`.
+- [ ] Rodar o resumo: `python tep-lab/local/scripts/summarize_run.py tep-lab/data/experiment_82/calibracao_2026-10-08.csv`.
 - [ ] **`minPredictability`** por malha: ficar abaixo do menor PI visto em operação nominal (com margem), para que o normal nunca dispare. Hoje o stripper chegou a 0.096.
 - [ ] **`minOutputStd`**: decidir entre o σ da válvula de purga (~0.009 %) e o dos níveis (~0.3 %). Decidir também se a malha de pressão continua fora do julgamento (#86) ou sai da política.
 - [ ] **`maxCost`**: rever a partir da média e da dispersão de J (hoje ~166–169 $/h contra orçamento de 179).
