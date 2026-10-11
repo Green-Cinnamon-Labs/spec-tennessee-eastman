@@ -8,6 +8,110 @@ O experimento mais recente aparece primeiro.
 
 
 
+## Experimento 27 — Malhas PI em operação nominal: a integral na pressão esvazia o reator e a planta se perde em 33 h; o Kubernetes só percebe pelo limite de nível
+
+**Data:** 2026-10-10 (rodadas com PI) e 2026-10-11 (controle com P) — **Concluído** — spec #89
+
+**Arquivos:** `tep-lab/data/experiment_89/` — `pi_nominal_2026-10-10.csv/.png` (rodada 1), `pi_nominal_longo_2026-10-10.csv/.png` e `pi_nominal_longo_sinais_2026-10-10.csv/.png` (rodada 2; `..._sinais_final_...png` é o zoom das últimas horas), `p_controle_2026-10-11.csv/.png` e `p_controle_sinais_2026-10-11.csv` (controle), `pi_vs_p_sinais_2026-10-11.png` (PI contra P nos mesmos eixos — a figura principal). Código: monjolo PR #4 (`#[state]` em `#[monjolo::controller]`) e tep-plant PR #5 (malhas PI).
+
+### Observação
+
+Nos Experimentos 25 e 26 a planta não se recuperou do IDV6. As três malhas eram proporcionais e aceitavam offset permanente (pressão 131 kPa acima do setpoint, níveis 3.5 e 5.1 % fora). A #89 propôs duas mudanças na camada regulatória: converter as três malhas em PI e criar uma malha de nível do reator. Por decisão de escopo, só a primeira foi implementada antes deste experimento.
+
+As malhas PI: `mv = clamp(bias + Kc·(e + I/τi), 0, 100)`, `dI/dt = e`, com a integral como estado integrado pelo RK4 (o controller devolve `dI/dt`; não é um acumulador), anti-windup por integração condicional e sem derivativo (ruído, #66). Kc, setpoint e bias são os do controlador P; `I` nasce em 0, então em t = 0 a saída é a da lei P. Os τi vêm da estrutura descentralizada de Ricker (1996), lidos dos modelos Simulink do próprio autor (`MultiLoop_mode1.mdl`) e de Larsson & Skogestad (2001, `MultiLoop_Skoge_mode1.mdl`), que têm os mesmos pareamentos e a mesma forma de PI: pressão do reator → purga 20 min; nível do separador → underflow 200 min; nível do stripper → produto 200 min. Só o τi é reaproveitado: lá o Kc tem outra unidade (a saída é uma razão em cascata com uma malha de vazão).
+
+### Hipótese
+
+Com PI, em operação nominal (sem distúrbio), a pressão vai ao setpoint de 2705 kPa e os níveis a 50 %, sem oscilar, e a planta assenta num novo ponto de operação, com um novo J de referência. Esse J seria a base para recalibrar a política e repetir o IDV6.
+
+### Intervenção
+
+Três rodadas, todas sem distúrbio, com ruído nos sensores (#66), política Modo 1 sem alteração (`maxCost` 170.6, nível do reator entre 50 e 100 %, `maxOffset` 20 kPa / 1 % / 1 %) e o supervisor no Kind.
+
+| Rodada | Data | Malhas | Velocidade | `clock.t_h` | Avaliações do supervisor |
+|---|---|---|---|---|---|
+| 1 | 2026-10-10 | PI | 5 (≈ 10× o tempo real) | 0.03 → 9.97 | 122, uma a cada ≈ 5 min simulados |
+| 2 | 2026-10-10 | PI | 30 (≈ 56×) | 0 → 32.9 (até a perda da planta) | 70, uma a cada ≈ 28 min simulados |
+| Controle | 2026-10-11 | P | 30 (≈ 56×) | 0 → 40.5 | 84, uma a cada ≈ 28 min simulados |
+
+- **Controle com P:** mesma planta e mesmo binário, só com a integral congelada (`control()` devolvendo `dI/dt = 0`, o que deixa a lei idêntica à P anterior). Mudança temporária, desfeita depois da rodada. Foi rodado depois das rodadas com PI, para poder atribuir a deriva à ação integral.
+- **Sobre a velocidade:** a física e os controladores rodam em tempo simulado (1 s por tick em qualquer velocidade), então a resposta da planta não depende dela. O que muda é o que o supervisor mede em tempo de relógio: a 30, a janela do J (60 s) cobre ≈ 1 h simulada, a das malhas (300 s) ≈ 4.7 h, e a persistência de 3 avaliações ≈ 1 h. Por isso os índices das malhas e os tempos de veredito das rodadas a 30 não são comparáveis com os dos Experimentos 25 e 26 (velocidade 5).
+- **Sinais da planta:** o `Plant.status` não traz nível do reator nem composições. Nas rodadas 2 e controle eles foram gravados do historian com `tep-lab/local/scripts/record_signals.py` (média a cada 10 s de relógio ≈ 9 min simulados), criado durante o experimento. Na rodada 1 só há o registro do supervisor.
+- **Notas de execução:** subir a planta antes do historian (senão o supervisor fica `Pending` com `HistorianUnreachable`); a velocidade volta a 1 quando a planta reinicia; a rodada 1 parou em 10 h porque a duração foi subestimada — a deriva só fica evidente depois de ≈ 6 h.
+
+### Resultado
+
+**As malhas PI fazem o que devem (rodada 1, velocidade 5).** O offset da pressão foi de 9.7 kPa a zero em ≈ 3.8 h, ultrapassou ≈ 1 kPa (10 %) em torno de 5 h e voltou a zero em ≈ 6.5 h, sem oscilação sustentada. Os níveis do separador e do stripper ficaram dentro de ±0.33 %. `Compliant` em 122 de 122 avaliações e `ControlLoopsHealthy` True nas 117 em que as malhas foram julgadas. Mas o J não assentou: 166.9 → 155.0 (3 h) → 157.1 (5.9 h) → 152.2 (9.6 h), ainda caindo. A partir de ≈ 6.5 h a pressão ficou ≈ 1.9 kPa abaixo do setpoint com a purga fechando em rampa (0.56 %/h) — é o erro de regime de um PI seguindo rampa: 0.56 %/h × τi/Kc = 1.87 kPa.
+
+**Com PI a planta deriva, a deriva acelera e a planta se perde em 33 h (rodada 2).** Sinais da planta e J do supervisor:
+
+| `clock.t_h` | Purga (%) | Pressão (kPa) | Nível do reator (%) | B na purga (mol %) | T do reator (°C) | Produto (m³/h) | J ($/h) |
+|---|---|---|---|---|---|---|---|
+| 0.4 | 38.7 | 2695.3 | 71.6 | 14.37 | 120.44 | 22.98 | 165.9 |
+| 5 | 35.5 | 2705.9 | 71.3 | 14.61 | 120.43 | 23.08 | 156.0 |
+| 10 | 33.8 | 2703.1 | 69.5 | 14.95 | 120.46 | 23.10 | 152.1 |
+| 15 | 31.0 | 2703.1 | 67.1 | 15.48 | 120.48 | 23.14 | 144.3 |
+| 20 | 27.5 | 2702.3 | 63.1 | 16.23 | 120.50 | 23.26 | 133.3 |
+| 25 | 22.9 | 2701.8 | 57.0 | 17.35 | 120.52 | 23.40 | 120.9 |
+| 30 | 17.8 | 2701.6 | 47.8 | 18.93 | 120.54 | 23.58 | 105.3 |
+| 31.0 | 16.8 | 2701.0 | 45.6 | 19.29 | 120.69 | 23.59 | 102.6 |
+| 32.0 | 4.3 | 2646.8 | 41.3 | 20.49 | 124.02 | 24.80 | — |
+| 32.6 | 0.0 | 2548.2 | 30.5 | 22.85 | 133.84 | 28.05 | 74.6 |
+| 32.9 | 41.9 | 3029.3 | 13.1 | — | 105.99 | 28.94 | 55.1 |
+
+- **Fase 1 (0 a 4 h):** o PI leva a pressão de 2695 para 2705 kPa fechando a purga de 38.7 para 35.2 %.
+- **Fase 2 (4 a 31 h), deriva que acelera:** a pressão fica a ≈ 3 kPa do setpoint e a temperatura não se move, mas a purga fecha cada vez mais rápido (−0.56, −0.71, −0.92 e −1.02 %/h nos trechos 10–15, 15–20, 20–25 e 25–30 h), o nível do reator cai (−0.49, −0.80, −1.22 e −1.84 %/h) e o inerte B se acumula (+0.11, +0.15, +0.22 e +0.32 %/h).
+- **Fase 3 (31 a 32.9 h), perda da planta:** em t ≈ 31.0 o nível do reator cruza 45.8 %. No `teprob.f` esse é o ponto (`VLR/7.8 = 50`) abaixo do qual o coeficiente de troca térmica do reator cai com o nível (`UARLEV`): o feixe de resfriamento começa a ficar descoberto. A temperatura sobe de 120.5 para 133.8 °C em 1.6 h, a pressão cai a 2548 kPa, a purga satura em 0 % (t ≈ 32.2) e o nível despenca. Em t = 32.9 a pressão dispara para 3029 kPa, acima do limite de shutdown de 3000 kPa. A gravação termina aí.
+
+**Com P a mesma planta converge (controle, 40 h).**
+
+| `clock.t_h` | Purga (%) | Pressão (kPa) | Nível do reator (%) | B na purga (mol %) | T do reator (°C) | Produto (m³/h) | J ($/h) |
+|---|---|---|---|---|---|---|---|
+| 0.4 | 39.1 | 2695.2 | 71.6 | 14.37 | 120.44 | 22.98 | 166.3 |
+| 5 | 39.3 | 2697.1 | 72.1 | 14.31 | 120.43 | 22.93 | 167.1 |
+| 10 | 39.4 | 2698.6 | 72.6 | 14.22 | 120.43 | 22.96 | 167.7 |
+| 20 | 39.6 | 2700.8 | 73.4 | 14.14 | 120.42 | 22.96 | 168.5 |
+| 30 | 39.8 | 2702.3 | 73.8 | 14.01 | 120.41 | 22.97 | 169.3 |
+| 40 | 39.9 | 2703.1 | 74.3 | 13.97 | 120.41 | 22.94 | 169.8 |
+
+Tudo se move pouco e cada vez mais devagar (o nível subiu 0.55 % nas primeiras 5 h e 0.20 % nas últimas 5 h). `Compliant` em 84 de 84 avaliações e `ControlLoopsHealthy` True nas 82 julgadas. Em t = 20 a diferença para a rodada com PI já era nítida: purga 39.6 contra 27.5 %, nível 73.4 contra 63.1 %, B 14.1 contra 16.2 %. O J da primeira linha é o da primeira avaliação gravada (t = 1.1).
+
+**As rodadas 1 e 2 coincidem onde se sobrepõem** (J em t = 4: 155.6 e 155.3; em t = 10: 151.4 e 152.1), o que confirma que a velocidade não altera a resposta da planta.
+
+**O que o supervisor viu na rodada 2:**
+
+| `clock.t_h` | Evento |
+|---|---|
+| ≈ 29.1 | O nível do reator cruza 50 %, o mínimo da política (sinal da planta) |
+| 29.96 | `ConstraintsSatisfied` → False |
+| 30.92 | `PolicyCompliant` → False, fase `NonCompliant` (3ª avaliação ruim seguida) |
+| ≈ 31.0 | Começa a perda física da planta (feixe de resfriamento descoberto) |
+| 32.45 | `TargetsMet` → False (vazão de produto acima da faixa de 22.95 m³/h ± 5 %) |
+| 32.83 | Última avaliação: J = 55.1 $/h; pressão e nível do stripper com `OffsetExceeded` pela primeira vez (25.3 kPa e −1.36 %), ainda abaixo da persistência |
+
+- **`CostWithinBudget` ficou True nas 70 avaliações.** O J caiu de 165.9 para 55.1 $/h enquanto a planta se desfazia.
+- **`ControlLoopsHealthy` ficou True até o fim.** De t = 6 a 31 h o offset da pressão visto pelo supervisor não passou de 3.4 kPa (limite 20) e os dos níveis de 0.27 % (limite 1).
+
+### Conclusão
+
+1. **A hipótese foi refutada.** As três malhas PI seguem o setpoint, mas a planta não assenta: em operação nominal, sem distúrbio, ela deriva de forma acelerada e se perde em ≈ 33 h. Não existe "novo J de referência" com esta camada regulatória.
+2. **A causa é a ação integral.** Na mesma planta, com o mesmo ruído e a mesma velocidade, as malhas P convergem em 40 h. Leitura do mecanismo, coerente com os dados: com P a pressão flutua e essa folga dá auto-regulação ao inventário (a pressão sobe ≈ 8 kPa, o nível ≈ 2.7 %, e param). Com PI a pressão fica presa em 2705 kPa e quem absorve o desbalanço é a purga: ao fechá-la, o inerte B se acumula, a vazão de produto sobe e o líquido do reator, que não tem malha, escoa — e nada o devolve.
+3. **O gatilho da perda é físico e está no modelo original.** Abaixo de 45.8 % de nível o reator perde área de troca térmica; sem malha de temperatura (a água de resfriamento do reator é fixa) a temperatura dispara. Da deriva lenta à perda da planta passam menos de 2 h.
+4. **PI na pressão exige a malha de nível do reator.** Os dois itens da #89 não são independentes: a integral só é segura com o inventário do reator (e o inerte) sob controle. Fica para a #89 decidir entre implementar a malha de nível do reator na estrutura de Ricker ou manter a pressão em P.
+5. **O Kubernetes não percebeu o problema pelos dois níveis de observação — só por um limite declarado.**
+   - **O nível econômico premiou a degradação.** Menos purga significa menos reagente perdido na conta de Downs & Vogel, então o J "melhorou" de 166 para 55 $/h enquanto a planta consumia o próprio inventário. Um orçamento máximo (`maxCost`) não protege contra isso.
+   - **O nível das malhas também não viu.** As três malhas estavam saudáveis pelos dois testes (previsibilidade e seguimento); o problema estava numa variável que não tem malha.
+   - **O que pegou foi o limite de nível do reator da política (mínimo de 50 %).** O `NonCompliant` saiu em t = 30.9, ≈ 1.8 h depois de o nível cruzar o limite e praticamente junto com o início do colapso. Esse atraso é efeito da velocidade 30 (cada avaliação cobre ≈ 28 min simulados e a persistência é 3). Estimativa: a velocidade 5 o veredito sairia ≈ 15 min depois do cruzamento, ≈ 1.7 h antes do colapso.
+   - **Mesmo assim foi tarde.** O nível caiu por 25 h dentro da faixa permitida antes de cruzar o limite. Um limite fixo avisa quando a variável chega lá, não quando ela começa a ir.
+
+### O que isso diz sobre a planta física (uso do CPS)
+
+- **Camada regulatória:** trocar P por PI numa malha não é uma melhoria local. Muda quem absorve o desbalanço da planta. Numa planta com reciclo e inventários acoplados, ação integral na pressão via purga só é segura com o inventário do reator e o inerte sob controle.
+- **Camada de supervisão:** custo e saúde das malhas não bastam. Uma deriva lenta de inventário passa pelos dois, e pelo custo passa com sinal trocado. A supervisão precisa de (i) limites sobre os inventários que não têm malha — foi o que funcionou aqui; (ii) um teste de tendência ou de estacionariedade, que avise de uma deriva sustentada ainda dentro dos limites; (iii) tratar custo anormalmente baixo como sinal, não só custo alto.
+- **Método:** toda mudança na camada de controle precisa de uma rodada de controle longa, a mesma planta sem a mudança. E experimentos de regime precisam durar várias constantes de tempo do inventário — aqui, dezenas de horas, o que só foi viável acelerando a simulação. As duas coisas faltaram no começo deste experimento e nos anteriores (ver a revisão póstuma do Experimento 25).
+
+**Estado do código depois do experimento:** o `main` do tep-plant continua com as três malhas PI, ou seja, com a planta que se perde em ≈ 33 h de operação nominal. A decisão (malha de nível do reator ou pressão de volta a P) está na #89; a repetição do IDV6 fica para depois dela.
+
 ## Experimento 26 — Critério de seguimento de setpoint: o nível das malhas passa a avisar antes do econômico
 
 **Data:** 2026-10-08 — **Concluído** — spec #87 (e #85)
@@ -55,6 +159,8 @@ O nível econômico se comportou como no Exp 25 (`NonCompliant` 1.11 h depois do
 2. **Quem detectou foi o seguimento, não o PI.** As três malhas foram declaradas ruins por `OffsetExceeded` com PI entre 0.44 e 0.99. O índice de Bradu continua útil para o que foi feito — achar malhas mal sintonizadas que seguem o alvo —, mas não para detectar uma malha que perdeu o setpoint. Os dois testes se complementam, como no CERN, onde o índice roda ao lado dos alarmes de desvio.
 3. **Os dois níveis contam histórias diferentes e coerentes.** As malhas de nível saem do alvo primeiro (a camada regulatória está perdendo a batalha), a vazão de produto cai logo depois (efeito no processo) e o custo fura o orçamento em seguida (efeito econômico). A supervisão no Kubernetes passou a mostrar essa cadeia na ordem física em que ela acontece.
 4. **Para a planta física (uso do CPS):** a supervisão de uma planta assim precisa dos dois testes por malha — previsibilidade e seguimento — e a camada regulatória continua precisando de ação integral e de malha de nível do reator, porque a planta não volta sozinha (#89).
+
+**Revisão póstuma (2026-10-11):** o item 4 precisa de ressalva. O Experimento 27 mostrou que ação integral sem malha de nível do reator perde a planta em operação nominal — as duas coisas têm de vir juntas.
 
 ## Experimento 25 — IDV(6) observado pelo Kubernetes: veredito econômico vira, índice de malha não percebe
 
@@ -121,6 +227,15 @@ O objetivo deste laboratório é usar um sistema ciberfísico — a planta simul
 - **Camada de supervisão (Kubernetes):** avaliar uma malha só pela previsibilidade do erro não basta; é preciso também um **critério de seguimento de setpoint** (distância do alvo e saturação da válvula). Rastreado na #87; é o Experimento 26.
 
 As duas são independentes: mesmo com PI, uma malha que não dá conta de um distúrbio (válvula saturada) produz um erro que deriva de forma suave e previsível, e o índice de Bradu continuaria dizendo "saudável". Por isso o critério de seguimento vem primeiro.
+
+### Revisão póstuma (2026-10-11, a partir do controle do Experimento 27)
+
+Faltou neste experimento, e na calibração do bloco 6 da #85, um baseline longo da planta atual com as malhas P. Ele foi rodado como controle do Experimento 27: 40 h sem distúrbio (`tep-lab/data/experiment_89/p_controle_2026-10-11.csv` e `p_controle_sinais_2026-10-11.csv`).
+
+- **A planta com P não está em regime no começo da rodada.** Ela converge devagar por dezenas de horas: pressão de 2695 para 2703 kPa, nível do reator de 71.6 para 74.3 %, purga de 39.1 para 39.9 %, J de 166.3 para 169.8 $/h. O "offset nominal de ≈ 9 kPa" da pressão é o começo desse transitório; em 40 h ele cai a 2 kPa.
+- **Consequência para a calibração:** o J de referência (166.83 ± 0.18 $/h) foi medido entre t = 1.75 e 5.06 h, no início do transitório. Em 40 h o J nominal chega a 169.8, a 0.8 $/h do `maxCost` de 170.6. Em rodadas longas o veredito econômico pode virar sem distúrbio nenhum; o `maxCost` precisa ser recalibrado com o J de regime.
+- **Os resultados deste experimento continuam válidos:** o IDV6 foi ligado em t = 2.31 e o efeito dele (J de 166 para 218 $/h em 2.7 h) é muito maior que a deriva nominal (≈ 0.2 $/h por hora nesse trecho).
+- **Ressalva à conclusão 3 e à seção acima:** a recomendação de "ação integral nas malhas" não vale sozinha. O Experimento 27 mostrou que ação integral na pressão, sem malha de nível do reator, tira a auto-regulação da planta e a perde em 33 h de operação nominal. As duas necessidades da camada regulatória (PI e nível do reator) não são independentes.
 
 ## Experimento 24 — `twr` congelado: a fórmula quase-estática era estruturalmente instável, não só mal calibrada — INVESTIGAÇÃO FECHADA
 
