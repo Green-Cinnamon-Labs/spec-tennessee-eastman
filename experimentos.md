@@ -12,7 +12,23 @@ O experimento mais recente aparece primeiro.
 
 **Data:** 2026-10-10 (rodadas com PI) e 2026-10-11 (controle com P) — **Concluído** — spec #89
 
-**Arquivos:** `tep-lab/data/experiment_89/` — `pi_nominal_2026-10-10.csv/.png` (rodada 1), `pi_nominal_longo_2026-10-10.csv/.png` e `pi_nominal_longo_sinais_2026-10-10.csv/.png` (rodada 2; `..._sinais_final_...png` é o zoom das últimas horas), `p_controle_2026-10-11.csv/.png` e `p_controle_sinais_2026-10-11.csv` (controle), `pi_vs_p_sinais_2026-10-11.png` (PI contra P nos mesmos eixos — a figura principal). Código: monjolo PR #4 (`#[state]` em `#[monjolo::controller]`) e tep-plant PR #5 (malhas PI).
+**Arquivos:** `tep-lab/data/experiment_89/` — `pi_nominal_2026-10-10.csv/.png` (rodada 1), `pi_nominal_longo_2026-10-10.csv/.png` e `pi_nominal_longo_sinais_2026-10-10.csv/.png` (rodada 2; `..._sinais_final_...png` é o zoom das últimas horas), `p_controle_2026-10-11.csv/.png` e `p_controle_sinais_2026-10-11.csv` (controle), `pi_vs_p_sinais_2026-10-11.png` (PI contra P nos mesmos eixos, rodadas inteiras) e `pi_vs_p_quem_flutua_2026-10-11.png` (a mesma comparação até t = 30 h, com a pressão em escala fina). As figuras abaixo apontam para a versão desses arquivos no commit `0fddef5` do tep-lab. Código: monjolo PR #4 (`#[state]` em `#[monjolo::controller]`) e tep-plant PR #5 (malhas PI).
+
+### O fio da meada: por que o PI entrou
+
+O PI foi uma tentativa de fazer a planta vencer o distúrbio. A sequência que levou a este experimento, e o que ele devolveu:
+
+| Passo | Pergunta | O que aconteceu | Consequência |
+|---|---|---|---|
+| Exp 25 (2026-10-08) | O Kubernetes percebe a planta se degradando sob IDV6, com as regras fixas? | Percebe pelo custo: `NonCompliant` 1.15 h depois do distúrbio. O índice das malhas não vê nada. E a planta **não se recupera** quando o IDV6 é desligado: as malhas P ficam com offset (pressão 131 kPa acima do setpoint, níveis 3.5 e 5.1 % fora) e o J continua subindo. | Duas frentes. Na supervisão: falta um critério de seguimento de setpoint (#87). Na planta: as malhas P aceitam offset e o nível do reator não tem malha (#89). |
+| Exp 26 (2026-10-08) | Com o critério de seguimento (`maxOffset`), o nível das malhas avisa? | Avisa, e antes do custo (T₀ + 1.00 h contra T₀ + 1.11 h). A planta continua sem se recuperar. | A supervisão ficou coerente. Sobra a planta: #89. |
+| #89 (2026-10-09) | O que a camada regulatória precisa para vencer o IDV6? | Proposta: ação integral nas três malhas, para não aceitar offset, e uma malha de nível do reator. Por decisão de escopo, só o PI foi implementado. | Antes de repetir o IDV6, validar o PI em operação nominal: este experimento. |
+| Exp 27, rodadas 1 e 2 (2026-10-10) | Com PI a planta assenta num novo ponto de operação? | Não. A pressão vai ao setpoint, mas a planta deriva e se perde em 33 h, sem distúrbio nenhum. | Suspeita sobre a ação integral. Faltava a rodada de controle. |
+| Exp 27, controle (2026-10-11) | A deriva é do PI, ou a planta já derivava com P? | Com P a mesma planta converge em 40 h. | A deriva vem da ação integral. O remédio pensado para o distúrbio tirou a estabilidade da operação normal. |
+
+![Experimento 25: IDV6 com malhas P](https://raw.githubusercontent.com/Green-Cinnamon-Labs/tep-lab/0fddef5d9b27a5c3f8afe1570bc5352f7aedb50d/data/experiment_82/idv6_2026-10-08.png)
+
+*Figura 27.1 — O ponto de partida (Experimento 25). Sob IDV6, com as malhas P, o custo fura o orçamento e o veredito vira `NonCompliant`; desligado o distúrbio, o J continua subindo e a planta não volta. Foi para resolver isso que o PI entrou. Arquivo: `tep-lab/data/experiment_82/idv6_2026-10-08.png`.*
 
 ### Observação
 
@@ -63,6 +79,10 @@ Três rodadas, todas sem distúrbio, com ruído nos sensores (#66), política Mo
 - **Fase 2 (4 a 31 h), deriva que acelera:** a pressão fica a ≈ 3 kPa do setpoint e a temperatura não se move, mas a purga fecha cada vez mais rápido (−0.56, −0.71, −0.92 e −1.02 %/h nos trechos 10–15, 15–20, 20–25 e 25–30 h), o nível do reator cai (−0.49, −0.80, −1.22 e −1.84 %/h) e o inerte B se acumula (+0.11, +0.15, +0.22 e +0.32 %/h).
 - **Fase 3 (31 a 32.9 h), perda da planta:** em t ≈ 31.0 o nível do reator cruza 45.8 %. No `teprob.f` esse é o ponto (`VLR/7.8 = 50`) abaixo do qual o coeficiente de troca térmica do reator cai com o nível (`UARLEV`): o feixe de resfriamento começa a ficar descoberto. A temperatura sobe de 120.5 para 133.8 °C em 1.6 h, a pressão cai a 2548 kPa, a purga satura em 0 % (t ≈ 32.2) e o nível despenca. Em t = 32.9 a pressão dispara para 3029 kPa, acima do limite de shutdown de 3000 kPa. A gravação termina aí.
 
+![Rodada 2: as últimas horas](https://raw.githubusercontent.com/Green-Cinnamon-Labs/tep-lab/0fddef5d9b27a5c3f8afe1570bc5352f7aedb50d/data/experiment_89/pi_nominal_longo_sinais_final_2026-10-10.png)
+
+*Figura 27.2 — A perda da planta em detalhe (rodada 2, a partir de t = 28.5 h). O nível do reator cruza o mínimo da política (50 %) e depois o topo do feixe de resfriamento (45.8 %, linha laranja em t = 31.0); a temperatura dispara, a pressão cai, a purga satura fechada e, no fim, a pressão passa do limite de shutdown. Arquivo: `tep-lab/data/experiment_89/pi_nominal_longo_sinais_final_2026-10-10.png`.*
+
 **Com P a mesma planta converge (controle, 40 h).**
 
 | `clock.t_h` | Purga (%) | Pressão (kPa) | Nível do reator (%) | B na purga (mol %) | T do reator (°C) | Produto (m³/h) | J ($/h) |
@@ -75,6 +95,10 @@ Três rodadas, todas sem distúrbio, com ruído nos sensores (#66), política Mo
 | 40 | 39.9 | 2703.1 | 74.3 | 13.97 | 120.41 | 22.94 | 169.8 |
 
 Tudo se move pouco e cada vez mais devagar (o nível subiu 0.55 % nas primeiras 5 h e 0.20 % nas últimas 5 h). `Compliant` em 84 de 84 avaliações e `ControlLoopsHealthy` True nas 82 julgadas. Em t = 20 a diferença para a rodada com PI já era nítida: purga 39.6 contra 27.5 %, nível 73.4 contra 63.1 %, B 14.1 contra 16.2 %. O J da primeira linha é o da primeira avaliação gravada (t = 1.1).
+
+![PI contra P, rodadas inteiras](https://raw.githubusercontent.com/Green-Cinnamon-Labs/tep-lab/0fddef5d9b27a5c3f8afe1570bc5352f7aedb50d/data/experiment_89/pi_vs_p_sinais_2026-10-11.png)
+
+*Figura 27.3 — As duas rodadas inteiras nos mesmos eixos: PI em azul (até a perda da planta em t = 32.9 h) e P em verde (40 h). A mesma planta, o mesmo ruído e a mesma velocidade; a única diferença é a ação integral. Arquivo: `tep-lab/data/experiment_89/pi_vs_p_sinais_2026-10-11.png`.*
 
 **As rodadas 1 e 2 coincidem onde se sobrepõem** (J em t = 4: 155.6 e 155.3; em t = 10: 151.4 e 152.1), o que confirma que a velocidade não altera a resposta da planta.
 
@@ -92,10 +116,29 @@ Tudo se move pouco e cada vez mais devagar (o nível subiu 0.55 % nas primeiras 
 - **`CostWithinBudget` ficou True nas 70 avaliações.** O J caiu de 165.9 para 55.1 $/h enquanto a planta se desfazia.
 - **`ControlLoopsHealthy` ficou True até o fim.** De t = 6 a 31 h o offset da pressão visto pelo supervisor não passou de 3.4 kPa (limite 20) e os dos níveis de 0.27 % (limite 1).
 
+![Rodada 2: o que o supervisor viu](https://raw.githubusercontent.com/Green-Cinnamon-Labs/tep-lab/0fddef5d9b27a5c3f8afe1570bc5352f7aedb50d/data/experiment_89/pi_nominal_longo_2026-10-10.png)
+
+*Figura 27.4 — O que o supervisor viu na rodada 2. O J cai o tempo todo e nunca chega perto do orçamento; `CostWithinBudget` e `ControlLoopsHealthy` ficam verdes até o fim; o offset das três malhas (4º painel) fica muito abaixo do limite. Só `ConstraintsSatisfied` acusa, pelo nível do reator, e já junto com o colapso (linha laranja). Arquivo: `tep-lab/data/experiment_89/pi_nominal_longo_2026-10-10.png`.*
+
+### Como entender o resultado: com P flutua a pressão, com PI flutua a purga
+
+![Quem flutua: P contra PI até t = 30 h](https://raw.githubusercontent.com/Green-Cinnamon-Labs/tep-lab/0fddef5d9b27a5c3f8afe1570bc5352f7aedb50d/data/experiment_89/pi_vs_p_quem_flutua_2026-10-11.png)
+
+*Figura 27.5 — As duas rodadas até t = 30 h, antes do colapso, com a pressão em escala fina. Com P (verde) a pressão sobe sozinha e a purga quase não se mexe. Com PI (azul) a pressão é levada ao setpoint e mantida perto dele, e quem se mexe é a purga — junto com o nível do reator e o inerte. Arquivo: `tep-lab/data/experiment_89/pi_vs_p_quem_flutua_2026-10-11.png`.*
+
+- **Convenções.** A posição da válvula é a abertura: 0 % é fechada e 100 % é toda aberta. A malha de pressão age pela purga: pressão acima do setpoint (2705 kPa) abre a purga, para sair mais gás; abaixo, fecha, para segurar o gás.
+- **Com P, a válvula só acompanha o erro do momento.** A lei é `mv = bias + Kc·e`: se o erro para de mudar, a válvula para. Por isso a pressão pode estacionar fora do setpoint (o offset) e se acomodar onde a planta precisa. Na figura: a pressão vai sozinha de 2695 a 2702 kPa em 30 h e a purga quase não sai do lugar (39.1 → 39.8 %).
+- **Com PI, a integral não aceita erro.** Ela soma o erro ao longo do tempo: enquanto a pressão não estiver no setpoint, a soma cresce e empurra a válvula mais um pouco. A pressão até se desvia por um tempo, mas não consegue ficar fora; quem passa a se mover é a válvula. Na figura: a pressão começa abaixo do setpoint, então o controlador **fecha** a purga; em ≈ 4 h a pressão está em 2705 kPa (chega a 2706 em t ≈ 4.8) e fica entre 2701.5 e 2706 kPa até t = 30 h, enquanto a purga vai de 38.7 a 17.8 %.
+- **Uma imagem.** O P é uma mola: empurra de volta e descansa onde as forças se equilibram, não necessariamente na marca. O PI é alguém que empurra cada vez mais forte enquanto a coisa não estiver na marca: chega lá com a força que for preciso e, se a força necessária continuar crescendo, continua aumentando até não ter mais. Aqui a força acabou quando a purga chegou a 0 %.
+- **A mesma pressão, duas plantas.** Em t ≈ 26 h as duas rodadas têm a mesma pressão (2701.6 e 2701.7 kPa). Numa a purga está em 22.0 % e o nível do reator em 55.5 %; na outra, em 39.7 % e 73.7 %. A pressão sozinha não diz em que estado a planta está.
+- **Por que a pressão solta estabiliza esta planta (leitura).** As alimentações são fixas e o nível do reator não tem malha. A pressão, pelo equilíbrio líquido-vapor e pelas taxas de reação, também define quanto líquido fica no reator. Solta, ela é a variável de ajuste que deixa todos os balanços fecharem: era o controle indireto do nível do reator. Presa, sobra a purga, que só decide quanto gás sai, não quanto líquido fica. O reator perde líquido aos poucos; menos líquido é mais volume para o gás, a pressão tende a cair, o PI fecha mais a purga, o inerte se acumula e o quadro piora. O PI corrige o sintoma (a pressão) com a única ferramenta que tem, e a causa (o líquido escoando) continua.
+- **A ironia.** O controlador que aceita offset estabiliza a planta porque não insiste; o que zera o offset a desestabiliza porque insiste. Isso não torna o P suficiente: sob IDV6 ele deixou a pressão 131 kPa fora do setpoint e a planta não voltou (Experimento 25). A lição é que todo inventário precisa de algo que o segure, seja a auto-regulação da planta, seja uma malha própria.
+- **O que está provado e o que é leitura.** Provado: na mesma planta, com o mesmo ruído e a mesma velocidade, P converge e PI diverge. Leitura: o mecanismo acima, com a pressão como variável de ajuste. O teste direto fica pendente: rodar com a pressão em P e PI só nos níveis.
+
 ### Conclusão
 
 1. **A hipótese foi refutada.** As três malhas PI seguem o setpoint, mas a planta não assenta: em operação nominal, sem distúrbio, ela deriva de forma acelerada e se perde em ≈ 33 h. Não existe "novo J de referência" com esta camada regulatória.
-2. **A causa é a ação integral.** Na mesma planta, com o mesmo ruído e a mesma velocidade, as malhas P convergem em 40 h. Leitura do mecanismo, coerente com os dados: com P a pressão flutua e essa folga dá auto-regulação ao inventário (a pressão sobe ≈ 8 kPa, o nível ≈ 2.7 %, e param). Com PI a pressão fica presa em 2705 kPa e quem absorve o desbalanço é a purga: ao fechá-la, o inerte B se acumula, a vazão de produto sobe e o líquido do reator, que não tem malha, escoa — e nada o devolve.
+2. **A causa é a ação integral.** Na mesma planta, com o mesmo ruído e a mesma velocidade, as malhas P convergem em 40 h. Leitura do mecanismo, coerente com os dados: com P a pressão flutua e essa folga dá auto-regulação ao inventário (a pressão sobe ≈ 8 kPa, o nível ≈ 2.7 %, e param). Com PI a pressão fica presa perto do setpoint e quem absorve o desbalanço é a purga: ao fechá-la, o inerte B se acumula, a vazão de produto sobe e o líquido do reator, que não tem malha, escoa — e nada o devolve. A seção anterior detalha essa leitura.
 3. **O gatilho da perda é físico e está no modelo original.** Abaixo de 45.8 % de nível o reator perde área de troca térmica; sem malha de temperatura (a água de resfriamento do reator é fixa) a temperatura dispara. Da deriva lenta à perda da planta passam menos de 2 h.
 4. **PI na pressão exige a malha de nível do reator.** Os dois itens da #89 não são independentes: a integral só é segura com o inventário do reator (e o inerte) sob controle. Fica para a #89 decidir entre implementar a malha de nível do reator na estrutura de Ricker ou manter a pressão em P.
 5. **O Kubernetes não percebeu o problema pelos dois níveis de observação — só por um limite declarado.**
