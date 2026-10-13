@@ -13,6 +13,10 @@
 			"path": "../tep-plant"
 		},
 		{
+			"name": "tep-optimizer",
+			"path": "../tep-optimizer"
+		},
+		{
 			"name": "tep-ihm",
 			"path": "../tep-ihm"
 		},
