@@ -1,10 +1,19 @@
-# Registro Científico de Intervenções — TEP CPS
+# Registro de experimentos
 
-Registro científico dos experimentos e intervenções.
+Registro científico dos experimentos e intervenções feitos no laboratório do TEP.
 
 Estrutura de cada entrada: **Observação → Hipótese → Intervenção → Resultado → Conclusão**
 
-O experimento mais recente aparece primeiro.
+O experimento mais recente aparece primeiro. As gravações e figuras ficam no [`tep-lab/data`](https://github.com/Green-Cinnamon-Labs/tep-lab/tree/main/data).
+
+## Índice por fase
+
+| Fase | Experimentos | Planta usada | O que se buscou |
+|---|---|---|---|
+| Partida e linha de base (mar/2026) | 1 a 11 | Primeira versão em Rust: programa de terminal que gravava CSV, com as 3 malhas P dentro do laço de simulação | Partida a frio (1, 2); estado salvo como ponto de partida (3, 4); a oscilação do reciclo é ruído de medição (5, 6); acúmulo lento de gás, que uma 4ª malha só piorou (7 a 9); linha de base de 20 h (10); controladores separados da planta, sem mudar um bit do resultado (11) |
+| Pilha integrada e distúrbios (abr a jun/2026) | 12 a 17 | Planta com servidor gRPC, IHM e operador da época | Validação da pilha integrada (12); nova linha de base (13); IDV(4), IDV(1), IDV(2) e IDV(3) (14 a 17; o 14 e o 17 não foram concluídos) |
+| Água de resfriamento (set/2026) | 18 a 24 | Planta reescrita sobre o monjolo | Colapso térmico investigado com testes unitários, reprodução em `cargo test` e auditoria fórmula a fórmula; a temperatura de saída da água foi congelada (24) |
+| Supervisão pelo Kubernetes (out/2026) | 25 a 27 | `tep-plant v2.0.0` (malhas P) e `v2.1.0-alpha` (malhas PI) | IDV(6) com a política fixa: o veredito econômico vira, o índice das malhas não percebe (25); critério de seguimento de setpoint (26); malhas PI perdem a planta em 33 h sem distúrbio (27) |
 
 
 
@@ -147,7 +156,7 @@ Tudo se move pouco e cada vez mais devagar (o nível subiu 0.55 % nas primeiras 
    - **O que pegou foi o limite de nível do reator da política (mínimo de 50 %).** O `NonCompliant` saiu em t = 30.9, ≈ 1.8 h depois de o nível cruzar o limite e praticamente junto com o início do colapso. Esse atraso é efeito da velocidade 30 (cada avaliação cobre ≈ 28 min simulados e a persistência é 3). Estimativa: a velocidade 5 o veredito sairia ≈ 15 min depois do cruzamento, ≈ 1.7 h antes do colapso.
    - **Mesmo assim foi tarde.** O nível caiu por 25 h dentro da faixa permitida antes de cruzar o limite. Um limite fixo avisa quando a variável chega lá, não quando ela começa a ir.
 
-### O que isso diz sobre a planta física (uso do CPS)
+### O que isso diz sobre a planta física (uso do laboratório)
 
 - **Camada regulatória:** trocar P por PI numa malha não é uma melhoria local. Muda quem absorve o desbalanço da planta. Numa planta com reciclo e inventários acoplados, ação integral na pressão via purga só é segura com o inventário do reator e o inerte sob controle.
 - **Camada de supervisão:** custo e saúde das malhas não bastam. Uma deriva lenta de inventário passa pelos dois, e pelo custo passa com sinal trocado. A supervisão precisa de (i) limites sobre os inventários que não têm malha — foi o que funcionou aqui; (ii) um teste de tendência ou de estacionariedade, que avise de uma deriva sustentada ainda dentro dos limites; (iii) tratar custo anormalmente baixo como sinal, não só custo alto.
@@ -201,7 +210,7 @@ O nível econômico se comportou como no Exp 25 (`NonCompliant` 1.11 h depois do
 1. **A hipótese se confirmou.** Com o critério de seguimento, o segundo nível de observação detectou a degradação e virou **antes** do veredito econômico: `ControlLoopsHealthy` False em T₀ + 1.00 h, `NonCompliant` em T₀ + 1.11 h. No Exp 25, sem o critério, ele nunca virou.
 2. **Quem detectou foi o seguimento, não o PI.** As três malhas foram declaradas ruins por `OffsetExceeded` com PI entre 0.44 e 0.99. O índice de Bradu continua útil para o que foi feito — achar malhas mal sintonizadas que seguem o alvo —, mas não para detectar uma malha que perdeu o setpoint. Os dois testes se complementam, como no CERN, onde o índice roda ao lado dos alarmes de desvio.
 3. **Os dois níveis contam histórias diferentes e coerentes.** As malhas de nível saem do alvo primeiro (a camada regulatória está perdendo a batalha), a vazão de produto cai logo depois (efeito no processo) e o custo fura o orçamento em seguida (efeito econômico). A supervisão no Kubernetes passou a mostrar essa cadeia na ordem física em que ela acontece.
-4. **Para a planta física (uso do CPS):** a supervisão de uma planta assim precisa dos dois testes por malha — previsibilidade e seguimento — e a camada regulatória continua precisando de ação integral e de malha de nível do reator, porque a planta não volta sozinha (#89).
+4. **Para a planta física (uso do laboratório):** a supervisão de uma planta assim precisa dos dois testes por malha — previsibilidade e seguimento — e a camada regulatória continua precisando de ação integral e de malha de nível do reator, porque a planta não volta sozinha (#89).
 
 **Revisão póstuma (2026-10-11):** o item 4 precisa de ressalva. O Experimento 27 mostrou que ação integral sem malha de nível do reator perde a planta em operação nominal — as duas coisas têm de vir juntas.
 
@@ -262,7 +271,7 @@ Tempo do distúrbio ao veredito: **1.15 h de processo** (≈ 7 min de relógio).
 2. **O Predictability Index não serve, sozinho, para dizer se a malha está dando conta.** Ele mede se o erro é *previsível*, não se a malha segura o setpoint. Em operação nominal o erro é ruído (PI baixo); sob distúrbio vira deriva lenta, que o modelo autorregressivo prevê facilmente (PI ≈ 1, "saudável"). E como o PI é calculado sobre a flutuação em torno da média (#87), o offset de −131 kPa nem entra no julgamento. É coerente com o artigo — Bradu procura malhas mal sintonizadas, supondo que a malha segue o setpoint em média —, mas mostra que o segundo nível precisa de um critério de **seguimento de setpoint** (offset máximo por malha e/ou saturação da válvula). Registrado na #87.
 3. **A camada regulatória do tep-plant não rejeita o IDV6.** Sem malha de nível do reator e com a pressão só proporcional, a planta não volta sozinha. Coerente com a literatura (IDV6 é o distúrbio mais severo do TEP); reforça a discussão sobre converter as malhas P em PI (#87) e sobre o interlock (#70).
 
-### O que isso diz sobre a planta física (uso do CPS)
+### O que isso diz sobre a planta física (uso do laboratório)
 
 O objetivo deste laboratório é usar um sistema ciberfísico — a planta simulada, sua instrumentação e a camada de supervisão no Kubernetes — para descobrir o que uma planta física com essa estrutura precisaria. O Experimento 25 aponta três necessidades, em duas camadas:
 
