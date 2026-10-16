@@ -33,7 +33,7 @@ stop being the same object.
 
 ## Two threads, one sharing problem
 
-There's a FastAPI/asyncio note elsewhere in this repo (`docs/forDummies/nota_fastapi_async_arquitetura.md`)
+There's a FastAPI/asyncio note elsewhere in this repo (`docs/archive/notes/nota_fastapi_async_arquitetura.md`)
 that explains concurrency *inside a single Python thread* — coroutines taking turns on one event
 loop, no real parallelism. What's happening in `tep-plant` is a different and simpler-sounding thing
 that actually has sharper edges: two genuine operating-system threads, running at the same time, on

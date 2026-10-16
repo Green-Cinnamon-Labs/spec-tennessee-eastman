@@ -2,7 +2,7 @@
 
 > **Status: IMPLEMENTADO** — issue #54 fechada em 2026-05-25.  
 > Arquivos entregues: `src/persistence.py`, `static/analytics.html`, `static/analytics.js`, rotas em `src/server.py`.  
-> Guia de uso: `docs/forDummies/nota_analytics_panel.md`
+> Guia de uso: `docs/notes/nota_analytics_panel.md`
 
 **Escopo:** `tep-ihm` (storage + display)  
 **Complexidade:** Alta — envolve decisão de persistência, nova dependência (ECharts), e possivelmente novo serviço  
